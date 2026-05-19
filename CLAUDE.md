@@ -14,7 +14,7 @@ lidr is a signal-driven robo-advisor — a web app that recommends **BUY / HOLD 
 - **Charting**: Recharts (area chart with timeframe selector).
 - **Market data**: `yahoo-finance2` v3 — requires the `new YahooFinance()` instantiation pattern (v2's default singleton was removed).
 - **Persistence (client-side)**: `localStorage` for the user's custom watchlist. Key: `lidr.custom-tickers.v1`.
-- **Deployment target**: Vercel free tier (not yet deployed as of last entry).
+- **Deployment**: Vercel free tier — **live at https://lidr-eta.vercel.app/**.
 - **Hosting repo**: https://github.com/pavarit/lidr
 
 ## Current State
@@ -22,7 +22,7 @@ lidr is a signal-driven robo-advisor — a web app that recommends **BUY / HOLD 
 - Local dev: `npm install && npm run dev` → http://localhost:3000
 - Working directory: `C:\Users\smnk1\Claude\Projects\lidr` (deliberately outside OneDrive — see Key Decisions)
 - GitHub repo pushed and current
-- Not yet deployed to Vercel
+- Deployed and live at https://lidr-eta.vercel.app/ — every `git push` to `main` auto-deploys a new build
 - **Six signals running**: SMA crossover, RSI, MACD, Bollinger Bands, period-high/low breakout, volume-confirmed breakout
 - **Context-aware parameters**: every signal's lookback windows scale with the chart timeframe being viewed (short / medium / long contexts defined in `lib/signals/config.ts`)
 - **20 default tickers**: 10 ETFs (broad market + major sectors) + 10 popular individual stocks. Defined in `lib/tickers.ts`.
@@ -78,14 +78,17 @@ Things that might surprise future-Claude. Keep these in mind before changing rel
 
 In rough priority order:
 
-1. **Deploy to Vercel.** "Continue with GitHub" → import `pavarit/lidr` → click Deploy. Free tier, no env vars needed.
-2. **Add a `robots.txt` or simple password gate** before sharing the Vercel URL widely.
-3. **Migrate to Next 16** before going public. Main work: update `params` to `Promise<...>` and `await` it in the four route handlers under `app/api/*/route.ts`.
-4. **Add auth + backend** (NextAuth + Supabase free tier are the discussed options) so the watchlist can sync across devices.
-5. **Backtest the signals** against historical data to produce calibrated confidence values (Level 2). Good Python-first project since the user has a Python analytics background.
-6. **Add fundamental signals** (earnings momentum, P/E percentile vs own history). Requires a paid data source — not on the immediate path.
+1. **Add a `robots.txt` or simple password gate** before sharing the Vercel URL widely. The deployed site is currently publicly indexable by anyone with the link.
+2. **Migrate to Next 16.** Main work: update `params` to `Promise<...>` and `await` it in the four route handlers under `app/api/*/route.ts`. Worth doing before the project gets serious traffic so we're on an actively-developed major version.
+3. **Add auth + backend** (NextAuth + Supabase free tier are the discussed options) so the watchlist can sync across devices instead of being per-browser `localStorage`.
+4. **Backtest the signals** against historical data to produce calibrated confidence values (Level 2). Good Python-first project since the user has a Python analytics background — could prototype the backtest in Python and translate the calibrated numbers back into the JS signal functions.
+5. **Add fundamental signals** (earnings momentum, P/E percentile vs own history). Requires a paid data source — not on the immediate path.
 
 ## Recent Changes
+
+### 2026-05-19 — Deployed to Vercel, WSL migration, docs cleanup
+
+Deployed lidr to Vercel free tier — live at https://lidr-eta.vercel.app/. Auto-deploy from `main` is wired up via the GitHub integration; no env vars or paid services needed. Boon also migrated his terminal workflow from PowerShell to WSL (Ubuntu) — installed nvm + Node LTS, GitHub CLI, and reauthed in Linux. Project still lives at `/mnt/c/Users/smnk1/Claude/Projects/lidr` (`/mnt/c/...` is how WSL exposes the Windows drive); first `npm install` rebuilt `node_modules` for Linux binaries. Trimmed overlap between README.md and CLAUDE.md: README now focuses on human onboarding (setup, run, deploy, how-to) and CLAUDE.md is the single source of truth for folder structure, decisions, and roadmap. Also brought the README's "What's in this prototype" and "How to add a new signal" sections up to date with the six signals, search/watchlist, and tooltips that were added the day before. The `wslu` package (which provides `wslview` for opening URLs from Linux in the Windows browser) couldn't be installed on this Ubuntu image after trying universe + the official PPA — `cmd.exe /c start <url>` is the fallback shortcut. Not blocking anything; revisit if it ever matters.
 
 ### 2026-05-18 — Initial build, signal expansion, ticker search
 

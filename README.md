@@ -4,16 +4,24 @@ A clean, signal-driven robo-advisor prototype that recommends **buy / hold / sel
 
 Built to be cheap to run, fast to iterate on, and easy to grow into a real product.
 
+**Live demo:** https://lidr-eta.vercel.app/
+
 ---
 
 ## What's in this prototype
 
-- **20 tickers** out of the box — 10 broad/sector ETFs (VTI, VOO, QQQ, SPY, IWM, VEA, VWO, XLK, XLF, XLE) and 10 popular individual stocks (AAPL, MSFT, GOOGL, AMZN, NVDA, META, TSLA, BRK-B, JPM, V).
+- **20 default tickers** out of the box — 10 broad/sector ETFs (VTI, VOO, QQQ, SPY, IWM, VEA, VWO, XLK, XLF, XLE) and 10 popular individual stocks (AAPL, MSFT, GOOGL, AMZN, NVDA, META, TSLA, BRK-B, JPM, V).
+- **Ticker search** — search and add any equity or ETF Yahoo knows about to a custom watchlist; the list persists per browser via `localStorage`.
 - **Live price chart** with selectable timeframes (1D, 1W, 1M, 3M, 1Y, 5Y, ALL).
 - **Key stats** at a glance (market cap, P/E, dividend yield, 52-week range, volume, exchange).
-- **Two starter signals** computed on the server from daily closes:
-  - **50/200 SMA Crossover** — classic trend / "golden cross" signal.
-  - **14-day RSI** — momentum / mean-reversion signal.
+- **Six signals** computed on the server from daily closes, with parameters that adapt to the chart timeframe (short / medium / long context):
+  - **SMA Crossover** — classic trend / "golden cross" signal
+  - **RSI** — momentum / mean-reversion
+  - **MACD** — trend-following momentum via convergence/divergence of two EMAs
+  - **Bollinger Bands** — volatility-adjusted mean reversion
+  - **Period-high/low breakout** — momentum on new range extremes (52-week default)
+  - **Volume-confirmed breakout** — combines price extremes with above-average volume
+- **Signal tooltips** — every card has an info icon that expands a plain-English explanation, a worked example, and the confidence formula.
 - **Apple-style UI** — frosted cards, system font stack, fluid Framer Motion transitions.
 - **Responsive** — works on phone and desktop with a collapsible sidebar.
 
@@ -77,48 +85,13 @@ You'll get a public URL (e.g. `lidr.vercel.app`). Free tier is plenty for person
 
 ---
 
-## Project structure
-
-```
-app/
-  api/
-    quote/[ticker]/route.ts      — current price + key stats
-    history/[ticker]/route.ts    — OHLC series for a given timeframe
-    signals/[ticker]/route.ts    — runs all signals on daily closes
-  layout.tsx
-  page.tsx                       — landing page (sidebar + main panel)
-  globals.css
-
-components/
-  Sidebar.tsx                    — left ticker list (ETFs + Stocks sections)
-  TickerDetail.tsx               — orchestrates fetch + layout
-  PriceChart.tsx                 — Recharts area chart
-  TimeFrameSelector.tsx          — segmented control for 1D…ALL
-  BasicInfo.tsx                  — market cap, P/E, etc.
-  SignalCard.tsx                 — recommendation card per signal
-
-lib/
-  tickers.ts                     — the 20-ticker watchlist
-  yahoo.ts                       — Yahoo Finance helper (quotes, history, closes)
-  signals/
-    sma.ts                       — 50/200 SMA crossover
-    rsi.ts                       — 14-day RSI
-    index.ts                     — runAllSignals()
-
-types/
-  index.ts                       — shared TS types
-
-```
-
----
-
 ## How to add a new signal
 
-1. Create `lib/signals/<your-signal>.ts` that exports a function `(closes: number[]) => SignalResult`.
+1. Create `lib/signals/<your-signal>.ts` that exports a function `(input: SignalInput) => SignalResult`. `SignalInput` gives you `closes`, `volumes`, and `params` (the context-tuned lookback windows from `lib/signals/config.ts`).
 2. Add it to the array in `lib/signals/index.ts`.
-3. That's it — it'll appear in the right-hand panel automatically.
+3. That's it — it'll appear in the right-hand panel automatically across all three contexts (short / medium / long).
 
-Good next signals to try: **MACD**, **Bollinger Bands**, **52-week breakout**, **earnings drift**.
+Good next signals to try: **MACD divergence detection**, **OBV (On-Balance Volume)**, **rate-of-change**, **earnings momentum** (this last one needs a fundamental data source).
 
 ---
 
@@ -128,13 +101,9 @@ Edit `lib/tickers.ts` and add an entry to either the `ETFS` or `STOCKS` array. T
 
 ---
 
-## Roadmap ideas
+## More context
 
-- User accounts + per-user watchlists (Supabase or NextAuth + Postgres).
-- Fundamental signals (earnings surprise, analyst revisions) — requires a paid data source (Polygon, Finnhub, IEX).
-- Alerts when a signal flips for a ticker on your watchlist (cron + email/SMS).
-- Backtesting view: "if you'd followed this signal for the last 5 years…"
-- Portfolio mode: aggregate recommendations across the holdings you actually own.
+For the detailed folder structure, design decisions, current roadmap, and recent change log, see [`CLAUDE.md`](CLAUDE.md).
 
 ---
 
