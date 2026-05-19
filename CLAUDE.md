@@ -1,5 +1,7 @@
 # CLAUDE.md
 
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
 This file orients any AI assistant (Claude Code, Claude Cowork, etc.) joining this project. Read it before doing anything else. Then keep it current — see "Maintenance Instructions" at the bottom.
 
 ## Project Goal
@@ -16,6 +18,29 @@ lidr is a signal-driven robo-advisor — a web app that recommends **BUY / HOLD 
 - **Persistence (client-side)**: `localStorage` for the user's custom watchlist. Key: `lidr.custom-tickers.v1`.
 - **Deployment**: Vercel free tier — **live at https://lidr-eta.vercel.app/**.
 - **Hosting repo**: https://github.com/pavarit/lidr
+
+## Commands
+
+```bash
+npm run dev        # start dev server → http://localhost:3000
+npm run build      # production build (run before deploying)
+npm run lint       # ESLint (Next.js built-in config)
+npm run typecheck  # tsc --noEmit (no test suite exists yet)
+```
+
+There are no automated tests. Type checking and linting are the only static-analysis gates.
+
+## Data Flow
+
+A user click on a ticker triggers three parallel fetches from `components/TickerDetail.tsx`:
+
+1. `/api/quote/[ticker]` → `lib/yahoo.ts::fetchQuote()` — current price + stats
+2. `/api/history/[ticker]?range=` → `lib/yahoo.ts::fetchHistory()` — OHLCV series for the chart
+3. `/api/signals/[ticker]?context=` → `lib/yahoo.ts::fetchSignalSeries()` (always 3 years of daily closes) → `lib/signals/index.ts::runAllSignals()` → individual signal files
+
+When the user changes the timeframe, `contextForTimeframe()` (`lib/signals/config.ts`) remaps it to a context string, and only the signals fetch is re-issued with the new context. The chart fetch also re-issues with the new `range=` param.
+
+TypeScript path alias `@/` resolves to the project root (set in `tsconfig.json`).
 
 ## Current State
 
