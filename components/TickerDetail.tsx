@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import clsx from "clsx";
 import type {
@@ -9,6 +9,7 @@ import type {
   SignalsResponse,
   Timeframe,
 } from "@/types";
+import { contextForTimeframe } from "@/lib/signals/config";
 import { PriceChart } from "./PriceChart";
 import { TimeFrameSelector } from "./TimeFrameSelector";
 import { BasicInfo } from "./BasicInfo";
@@ -25,6 +26,8 @@ export function TickerDetail({ symbol }: Props) {
   const [signals, setSignals] = useState<SignalsResponse | null>(null);
   const [chartLoading, setChartLoading] = useState(false);
 
+  const context = useMemo(() => contextForTimeframe(timeframe), [timeframe]);
+
   // Reset everything when ticker changes
   useEffect(() => {
     setQuote(null);
@@ -32,18 +35,13 @@ export function TickerDetail({ symbol }: Props) {
     setSignals(null);
   }, [symbol]);
 
-  // Fetch quote + signals on ticker change
+  // Fetch quote on ticker change
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const [qRes, sRes] = await Promise.all([
-          fetch(`/api/quote/${symbol}`).then((r) => r.json()),
-          fetch(`/api/signals/${symbol}`).then((r) => r.json()),
-        ]);
-        if (cancelled) return;
-        if (!qRes.error) setQuote(qRes);
-        if (!sRes.error) setSignals(sRes);
+        const qRes = await fetch(`/api/quote/${symbol}`).then((r) => r.json());
+        if (!cancelled && !qRes.error) setQuote(qRes);
       } catch {
         // swallow — UI handles empty state
       }
@@ -52,6 +50,24 @@ export function TickerDetail({ symbol }: Props) {
       cancelled = true;
     };
   }, [symbol]);
+
+  // Fetch signals whenever ticker OR context changes (context follows timeframe)
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const sRes = await fetch(
+          `/api/signals/${symbol}?context=${context}`,
+        ).then((r) => r.json());
+        if (!cancelled && !sRes.error) setSignals(sRes);
+      } catch {
+        // swallow
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [symbol, context]);
 
   // Fetch history whenever ticker or timeframe changes
   useEffect(() => {
@@ -132,7 +148,7 @@ export function TickerDetail({ symbol }: Props) {
 
         {/* Right column: signals */}
         <div className="space-y-4 min-w-0">
-          <div className="flex items-baseline justify-between">
+          <div className="flex items-baseline justify-between gap-3">
             <h2 className="text-sm font-semibold text-ink">Recommendations</h2>
             <span className="text-[11px] text-ink-mute">
               {signals
@@ -140,6 +156,21 @@ export function TickerDetail({ symbol }: Props) {
                 : ""}
             </span>
           </div>
+
+          <AnimatePresence mode="wait">
+            {signals && (
+              <motion.div
+                key={signals.context}
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 4 }}
+                transition={{ duration: 0.2 }}
+                className="text-[11px] text-ink-mute px-1 -mt-2"
+              >
+                {signals.contextLabel} · matches the chart timeframe
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {!signals && (
             <div className="card rounded-xl2 p-4 text-sm text-ink-mute">
@@ -151,9 +182,13 @@ export function TickerDetail({ symbol }: Props) {
             <SignalCard key={sig.id} signal={sig} />
           ))}
 
-          <div className="text-[11px] text-ink-mute leading-snug px-1 pt-2">
-            Signals are technical, not financial advice. They use historical price data
-            from Yahoo Finance and simple indicators (50/200 SMA crossover, 14-day RSI).
+          <div className="text-[11px] text-ink-mute leading-snug px-1 pt-2 space-y-1.5">
+            <p>
+              Signals are technical, not financial advice. They use historical
+              price data from Yahoo Finance and simple indicators (SMA crossover,
+              RSI, MACD, Bollinger Bands, breakout, volume confirmation).
+            </p>
+            <p>Created by Boon Boonyasirichok.</p>
           </div>
         </div>
       </motion.div>

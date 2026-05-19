@@ -1,56 +1,54 @@
-import type { SignalResult } from "@/types";
+import type { SignalExplanation, SignalInput, SignalResult } from "@/types";
 
-/**
- * Simple moving average over the last `period` closes.
- * Returns NaN if there aren't enough points.
- */
+const SMA_EXPLANATION: SignalExplanation = {
+  plain:
+    "SMA stands for Simple Moving Average — the average of a stock's closing prices over a set window of time. This signal compares two of them — a shorter-term and a longer-term — and watches which is higher. When the shorter average rises above the longer one, the recent trend is outpacing the long-term baseline (a buy signal). When it falls below, the trend has turned negative (a sell signal).",
+  example:
+    "Imagine a stock's shorter-term average is $185 while its longer-term average is $175. Recent prices are tracking $10 higher than the long-term baseline — the trend is up. The wider that gap, the stronger the trend and the higher the confidence.",
+  formula:
+    "Confidence = min(1, |gap %| × 10), where gap % = (fast SMA − slow SMA) ÷ slow SMA. A 1% gap maps to 10% confidence; a 10% gap caps out at 100%.",
+};
+
 function sma(closes: number[], period: number): number {
   if (closes.length < period) return NaN;
   const slice = closes.slice(closes.length - period);
   return slice.reduce((a, b) => a + b, 0) / period;
 }
 
-/**
- * 50/200 SMA crossover ("Golden Cross" / "Death Cross").
- *
- * BUY  : 50-day SMA above 200-day SMA (bullish trend).
- * SELL : 50-day SMA below 200-day SMA (bearish trend).
- * HOLD : not enough data.
- *
- * Confidence scales with the absolute gap between the two SMAs,
- * normalized by the slower SMA. Capped at 1.
- */
-export function smaCrossoverSignal(closes: number[]): SignalResult {
-  const fast = sma(closes, 50);
-  const slow = sma(closes, 200);
+export function smaCrossoverSignal({ closes, params }: SignalInput): SignalResult {
+  const { smaFast, smaSlow } = params;
+  const fast = sma(closes, smaFast);
+  const slow = sma(closes, smaSlow);
+  const name = `Trend (${smaFast}/${smaSlow} SMA Crossover)`;
 
   if (!Number.isFinite(fast) || !Number.isFinite(slow)) {
     return {
       id: "sma-crossover",
-      name: "Trend (50/200 SMA Crossover)",
+      name,
       action: "HOLD",
       confidence: 0,
-      summary: "Not enough history yet to compute the 50/200 crossover.",
+      summary: `Not enough history to compute the ${smaFast}/${smaSlow} crossover.`,
       details: { fastSMA: null, slowSMA: null },
+      explanation: SMA_EXPLANATION,
     };
   }
 
-  const gapPct = (fast - slow) / slow; // positive = bullish
-  const confidence = Math.min(1, Math.abs(gapPct) * 10); // 10% gap -> full confidence
+  const gapPct = (fast - slow) / slow;
+  const confidence = Math.min(1, Math.abs(gapPct) * 10);
   const action = gapPct > 0 ? "BUY" : "SELL";
 
   const summary =
     action === "BUY"
-      ? `50-day SMA (${fast.toFixed(2)}) is above the 200-day SMA (${slow.toFixed(
+      ? `${smaFast}-period SMA (${fast.toFixed(2)}) is above the ${smaSlow}-period SMA (${slow.toFixed(
           2,
-        )}) — long-term trend is up.`
-      : `50-day SMA (${fast.toFixed(2)}) is below the 200-day SMA (${slow.toFixed(
+        )}) — trend is up.`
+      : `${smaFast}-period SMA (${fast.toFixed(2)}) is below the ${smaSlow}-period SMA (${slow.toFixed(
           2,
-        )}) — long-term trend is down.`;
+        )}) — trend is down.`;
 
   return {
     id: "sma-crossover",
-    name: "Trend (50/200 SMA Crossover)",
+    name,
     action,
     confidence,
     summary,
@@ -59,5 +57,6 @@ export function smaCrossoverSignal(closes: number[]): SignalResult {
       slowSMA: Number(slow.toFixed(2)),
       gapPercent: Number((gapPct * 100).toFixed(2)),
     },
+    explanation: SMA_EXPLANATION,
   };
 }

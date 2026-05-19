@@ -68,10 +68,14 @@ export async function fetchHistory(
 }
 
 /**
- * Always fetch a couple of years of daily closes for signal computation
- * (the 200-day SMA needs at least 200 trading days, so we pull ~3y to be safe).
+ * Always fetch a couple of years of daily closes + volumes for signal
+ * computation (the 200-day SMA needs at least 200 trading days, so we
+ * pull ~3y to be safe). The arrays are aligned by index — closes[i] and
+ * volumes[i] are the same trading day.
  */
-export async function fetchClosesForSignals(symbol: string): Promise<number[]> {
+export async function fetchSignalSeries(
+  symbol: string,
+): Promise<{ closes: number[]; volumes: number[] }> {
   const period2 = new Date();
   const period1 = new Date(Date.now() - 3 * 365 * 24 * 60 * 60 * 1000);
   const result: any = await yahooFinance.chart(symbol, {
@@ -80,7 +84,16 @@ export async function fetchClosesForSignals(symbol: string): Promise<number[]> {
     interval: "1d",
   });
   const quotes: any[] = Array.isArray(result?.quotes) ? result.quotes : [];
-  return quotes
-    .map((row: any) => (typeof row.close === "number" ? row.close : null))
-    .filter((c): c is number => c !== null);
+
+  const closes: number[] = [];
+  const volumes: number[] = [];
+  for (const row of quotes) {
+    if (typeof row.close === "number") {
+      closes.push(row.close);
+      // Volume is occasionally null on holidays/halts — coerce to 0 so
+      // arrays stay aligned by index.
+      volumes.push(typeof row.volume === "number" ? row.volume : 0);
+    }
+  }
+  return { closes, volumes };
 }
