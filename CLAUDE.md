@@ -1,7 +1,5 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-
 This file orients any AI assistant (Claude Code, Claude Cowork, etc.) joining this project. Read it before doing anything else. Then keep it current — see "Maintenance Instructions" at the bottom.
 
 > **Sibling project: `lidr-ml`** (Python ML/backtesting pipeline) — local `C:\Users\smnk1\Claude\Projects\lidr-ml`, GitHub https://github.com/pavarit/lidr-ml. It turns this project's signals into calibrated BUY/HOLD/SELL recommendations and feeds them back via a JSON artifact. If you're making changes that cross the boundary between the two (the signal logic, the `/api/signals/[ticker]` integration, the artifact schema), read lidr-ml's CLAUDE.md first.
@@ -117,7 +115,7 @@ In rough priority order:
 
 **Incorporate the UI update started in Claude Design.** Boon began a UI update over in Claude Design at the end of the 2026-05-19 session; the output needs to be reviewed and merged into the live components. Next-Claude should ask Boon where the Claude Design artifacts live (likely a separate folder or a generated file ref) before editing anything in `components/` — do not start changes without confirming what's intended to be replaced vs. augmented.
 
-The lidr-ml sibling project (Next Up #4) is now scaffolded, verified, and pushed to its own GitHub repo. Ongoing ML iteration happens there, not here, until the bridge step (Next Up #4 → wiring the JSON artifact into `/api/signals/[ticker]`) is reached.
+The lidr-ml sibling project (Next Up #5) is now scaffolded, verified, and pushed to its own GitHub repo. Ongoing ML iteration happens there, not here, until the bridge step (Next Up #5 → wiring the JSON artifact into `/api/signals/[ticker]`) is reached.
 
 <!-- When a task ships or pauses, replace the section above with `_Nothing currently in-flight._`
      (plus the explanatory comment from git history). Keep the description tight: what is being
@@ -127,7 +125,7 @@ The lidr-ml sibling project (Next Up #4) is now scaffolded, verified, and pushed
 
 ### 2026-05-19 (later) — Scaffolded `lidr-ml` sibling project
 
-Stood up `lidr-ml` at `C:\Users\smnk1\Claude\Projects\lidr-ml` as the home for the backtesting + ML model work that's been on the roadmap (Next Up #4). Scaffolding done in Cowork; ongoing iteration moves to Claude Code. Layout is a standard `src/`-layout Python package with a config-driven pipeline: YAML files in `configs/` define an experiment (date range, signals, model, backtest method), one CLI command runs the full pipeline end-to-end and drops a timestamped HTML report into `reports/`. The stub includes one signal (SMA crossover, ported from `lib/signals/sma.ts` as a parity reference), one base model (logistic regression), an expanding-window walk-forward backtest, and a yfinance loader with a synthetic-data fallback so the pipeline runs offline for development. Rationale for the separate project vs. a folder inside lidr: keeps Python/Node tooling cleanly apart, lets the model iterate on its own cadence, and integration via a JSON artifact (consumed by `/api/signals/[ticker]`) avoids any need for a running Python service until item 6 in Next Up is triggered. Updated Next Up items 4 and 6 to reflect the new project and its integration plan.
+Stood up `lidr-ml` at `C:\Users\smnk1\Claude\Projects\lidr-ml` as the home for the backtesting + ML model work that's been on the roadmap. Scaffolding done in Cowork; ongoing iteration moves to Claude Code. Layout is a standard `src/`-layout Python package with a config-driven pipeline: YAML files in `configs/` define an experiment (date range, signals, model, backtest method), one CLI command runs the full pipeline end-to-end and drops a timestamped HTML report into `reports/`. The stub includes one signal (SMA crossover, ported from `lib/signals/sma.ts` as a parity reference), one base model (logistic regression), an expanding-window walk-forward backtest, and a yfinance loader with a synthetic-data fallback so the pipeline runs offline for development. Rationale for the separate project vs. a folder inside lidr: keeps Python/Node tooling cleanly apart, lets the model iterate on its own cadence, and integration via a JSON artifact (consumed by `/api/signals/[ticker]`) avoids any need for a running Python service until the FastAPI-service roadmap item is triggered. Updated the backtesting and FastAPI-service roadmap items to reflect the new project and its integration plan.
 
 ### 2026-05-19 — Deployed to Vercel, WSL migration, docs cleanup
 
