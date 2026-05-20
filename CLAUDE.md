@@ -113,7 +113,7 @@ In rough priority order:
 
 ## Active Task
 
-**Incorporate the UI update started in Claude Design.** Boon began a UI update over in Claude Design at the end of the 2026-05-19 session; the output needs to be reviewed and merged into the live components. Next-Claude should ask Boon where the Claude Design artifacts live (likely a separate folder or a generated file ref) before editing anything in `components/` — do not start changes without confirming what's intended to be replaced vs. augmented.
+Mobile UI improvements are now implemented (see 2026-05-20 Recent Changes entry). No active implementation task. Next priority is Next Up #2 (robots.txt or password gate before wider sharing).
 
 The lidr-ml sibling project (Next Up #5) is now scaffolded, verified, and pushed to its own GitHub repo. Ongoing ML iteration happens there, not here, until the bridge step (Next Up #5 → wiring the JSON artifact into `/api/signals/[ticker]`) is reached.
 
@@ -122,6 +122,10 @@ The lidr-ml sibling project (Next Up #5) is now scaffolded, verified, and pushed
      built, where it was left off, and any mid-flight decisions the next session needs to know. -->
 
 ## Recent Changes
+
+### 2026-05-20 — Mobile UI redesign (Option D from Claude Design)
+
+Implemented the mobile UI improvements from a Claude Design handoff bundle. The design session had identified six core problems on phone: recommendations buried below chart + stats, no quick ticker-switching, cramped timeframe pill, tall redundant signal cards with no aggregate view, and a wasteful mobile top bar. Option D ("One screen") was the chosen direction after two rounds of iteration. Changes are purely additive for mobile (`xl:hidden` hides the new layout on desktop, `hidden xl:grid` keeps the existing two-column desktop layout untouched). Three files changed: `app/globals.css` (added `.no-scrollbar` utility), `app/page.tsx` (replaced the `☰ Tickers` + symbol bar with a full-width search bar that opens the sidebar drawer, plus a horizontal chip strip showing all custom tickers and first 14 defaults for one-tap switching), and `components/TickerDetail.tsx` (added mobile-specific layout with compact hero + consensus pill, chart, compact signal rows with tap-to-expand summary, and a tap-to-expand stats disclosure row). The consensus is computed client-side from the signals array — majority action wins, score is average confidence. Production build (`next build`) passes; TypeScript clean. Local preview is broken on this Windows machine due to a Next.js 14 + Windows path issue: `next dev` with no existing cache returns 404 for all routes (no compilation occurs), and `next start` renders dynamically with dev-mode CSS paths that don't exist in the production build. Vercel auto-deploy on push is the intended verification path.
 
 ### 2026-05-19 (later) — Scaffolded `lidr-ml` sibling project
 

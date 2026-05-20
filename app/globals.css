@@ -33,3 +33,7 @@ body {
   -webkit-backdrop-filter: saturate(180%) blur(20px);
   border: 1px solid rgba(0, 0, 0, 0.06);
 }
+
+/* Hide scrollbars for chip strips / timeframe scroller */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
