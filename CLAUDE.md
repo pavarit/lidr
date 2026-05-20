@@ -103,22 +103,29 @@ Things that might surprise future-Claude. Keep these in mind before changing rel
 
 In rough priority order:
 
-1. **Add a `robots.txt` or simple password gate** before sharing the Vercel URL widely. The deployed site is currently publicly indexable by anyone with the link.
-2. **Migrate to Next 16.** Main work: update `params` to `Promise<...>` and `await` it in the four route handlers under `app/api/*/route.ts`. Worth doing before the project gets serious traffic so we're on an actively-developed major version.
-3. **Add auth + backend** (NextAuth + Supabase free tier are the discussed options) so the watchlist can sync across devices instead of being per-browser `localStorage`.
-4. **Backtest the signals** against historical data to produce calibrated confidence values (Level 2). Good Python-first project since the user has a Python analytics background — could prototype the backtest in Python and translate the calibrated numbers back into the JS signal functions.
-5. **Add fundamental signals** (earnings momentum, P/E percentile vs own history). Requires a paid data source — not on the immediate path.
-6. **Add a Python FastAPI microservice for computation-heavy work.** Decision: keep Next.js for the full frontend and as a thin API gateway; add Python as a separate service at the signals/computation layer when needed for backtesting or ML models. The natural seam is `/api/signals/[ticker]` — Next.js can proxy to the Python service for heavy calls while simple signals stay in JS. Deploy the Python service on Railway or Render free tier alongside the Vercel frontend. Use `yfinance` + pandas/numpy on the Python side; the DataFrame model (date index, close/volume columns, rolling window methods) maps much more naturally to signal computation than parallel JS arrays. Trigger: when backtesting (item 4) or a custom ML model is ready to build.
+1. **Incorporate the UI update from Claude Design** (active — see Active Task). Ask Boon where the Claude Design output is before touching `components/`. Keep changes scoped to the visual layer unless the design implies new data dependencies.
+2. **Add a `robots.txt` or simple password gate** before sharing the Vercel URL widely. The deployed site is currently publicly indexable by anyone with the link.
+3. **Migrate to Next 16.** Main work: update `params` to `Promise<...>` and `await` it in the four route handlers under `app/api/*/route.ts`. Worth doing before the project gets serious traffic so we're on an actively-developed major version.
+4. **Add auth + backend** (NextAuth + Supabase free tier are the discussed options) so the watchlist can sync across devices instead of being per-browser `localStorage`.
+5. **Backtest the signals + build an ML ensemble model** — IN PROGRESS as the sibling project `lidr-ml` (at `C:\Users\smnk1\Claude\Projects\lidr-ml`, GitHub: see lidr-ml's CLAUDE.md). Python-first pipeline that ports each TS signal to Python, trains an ensemble model (stacked base learners over the six signals) to produce calibrated BUY/HOLD/SELL recommendations, and backtests with walk-forward / expanding-window CV from pre-2008 to today. The pipeline emits a versioned JSON artifact (predictions + calibrated confidences); the natural integration seam back into lidr is `/api/signals/[ticker]`, which can read the artifact directly (cheap) or proxy to a Python service later (item 7). Goal is to replace the current heuristic confidences with empirically calibrated probabilities.
+6. **Add fundamental signals** (earnings momentum, P/E percentile vs own history). Requires a paid data source — not on the immediate path.
+7. **Add a Python FastAPI microservice for computation-heavy work.** Decision: keep Next.js for the full frontend and as a thin API gateway; add Python as a separate service at the signals/computation layer when needed. The natural seam is `/api/signals/[ticker]` — Next.js can proxy to the Python service for heavy calls while simple signals stay in JS. Deploy the Python service on Railway or Render free tier alongside the Vercel frontend. Trigger: once `lidr-ml` (item 5) has a model worth serving live. Until then, lidr-ml writes a static artifact that lidr reads — no service needed.
 
 ## Active Task
 
-_Nothing currently in-flight._
+**Incorporate the UI update started in Claude Design.** Boon began a UI update over in Claude Design at the end of the 2026-05-19 session; the output needs to be reviewed and merged into the live components. Next-Claude should ask Boon where the Claude Design artifacts live (likely a separate folder or a generated file ref) before editing anything in `components/` — do not start changes without confirming what's intended to be replaced vs. augmented.
 
-<!-- When a task is in progress, replace the line above with a short description:
-     what is being built, where it was left off, and any decisions mid-flight that
-     the next session needs to know before picking up. Remove when the task ships. -->
+The lidr-ml sibling project (Next Up #4) is now scaffolded, verified, and pushed to its own GitHub repo. Ongoing ML iteration happens there, not here, until the bridge step (Next Up #4 → wiring the JSON artifact into `/api/signals/[ticker]`) is reached.
+
+<!-- When a task ships or pauses, replace the section above with `_Nothing currently in-flight._`
+     (plus the explanatory comment from git history). Keep the description tight: what is being
+     built, where it was left off, and any mid-flight decisions the next session needs to know. -->
 
 ## Recent Changes
+
+### 2026-05-19 (later) — Scaffolded `lidr-ml` sibling project
+
+Stood up `lidr-ml` at `C:\Users\smnk1\Claude\Projects\lidr-ml` as the home for the backtesting + ML model work that's been on the roadmap (Next Up #4). Scaffolding done in Cowork; ongoing iteration moves to Claude Code. Layout is a standard `src/`-layout Python package with a config-driven pipeline: YAML files in `configs/` define an experiment (date range, signals, model, backtest method), one CLI command runs the full pipeline end-to-end and drops a timestamped HTML report into `reports/`. The stub includes one signal (SMA crossover, ported from `lib/signals/sma.ts` as a parity reference), one base model (logistic regression), an expanding-window walk-forward backtest, and a yfinance loader with a synthetic-data fallback so the pipeline runs offline for development. Rationale for the separate project vs. a folder inside lidr: keeps Python/Node tooling cleanly apart, lets the model iterate on its own cadence, and integration via a JSON artifact (consumed by `/api/signals/[ticker]`) avoids any need for a running Python service until item 6 in Next Up is triggered. Updated Next Up items 4 and 6 to reflect the new project and its integration plan.
 
 ### 2026-05-19 — Deployed to Vercel, WSL migration, docs cleanup
 
