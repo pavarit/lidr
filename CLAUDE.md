@@ -108,6 +108,15 @@ In rough priority order:
 3. **Add auth + backend** (NextAuth + Supabase free tier are the discussed options) so the watchlist can sync across devices instead of being per-browser `localStorage`.
 4. **Backtest the signals** against historical data to produce calibrated confidence values (Level 2). Good Python-first project since the user has a Python analytics background — could prototype the backtest in Python and translate the calibrated numbers back into the JS signal functions.
 5. **Add fundamental signals** (earnings momentum, P/E percentile vs own history). Requires a paid data source — not on the immediate path.
+6. **Add a Python FastAPI microservice for computation-heavy work.** Decision: keep Next.js for the full frontend and as a thin API gateway; add Python as a separate service at the signals/computation layer when needed for backtesting or ML models. The natural seam is `/api/signals/[ticker]` — Next.js can proxy to the Python service for heavy calls while simple signals stay in JS. Deploy the Python service on Railway or Render free tier alongside the Vercel frontend. Use `yfinance` + pandas/numpy on the Python side; the DataFrame model (date index, close/volume columns, rolling window methods) maps much more naturally to signal computation than parallel JS arrays. Trigger: when backtesting (item 4) or a custom ML model is ready to build.
+
+## Active Task
+
+_Nothing currently in-flight._
+
+<!-- When a task is in progress, replace the line above with a short description:
+     what is being built, where it was left off, and any decisions mid-flight that
+     the next session needs to know before picking up. Remove when the task ships. -->
 
 ## Recent Changes
 
