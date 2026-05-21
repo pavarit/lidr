@@ -29,6 +29,7 @@ const MOBILE_ACTION: Record<SignalAction, { dot: string; text: string; bg: strin
 
 export function TickerDetail({ symbol }: Props) {
   const [timeframe, setTimeframe] = useState<Timeframe>("1M");
+  const [showConsensusInfo, setShowConsensusInfo] = useState(false);
   const [quote, setQuote] = useState<Quote | null>(null);
   const [history, setHistory] = useState<HistoryResponse | null>(null);
   const [signals, setSignals] = useState<SignalsResponse | null>(null);
@@ -119,18 +120,19 @@ export function TickerDetail({ symbol }: Props) {
       >
         {/* ── Mobile / tablet layout (below xl) ─────────────────── */}
         <div className="xl:hidden space-y-4">
-          {/* Compact hero: symbol · price · change · consensus pill */}
+          {/* Compact hero: symbol · name · price · change · consensus pill */}
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <div className="flex items-baseline gap-2 flex-wrap">
-                <span className="text-[17px] font-bold text-ink tracking-tight">
-                  {symbol}
-                </span>
-                <span className="text-xs text-ink-mute truncate">
-                  {quote?.name ?? ""}
-                </span>
+              {/* Ticker symbol — same size as price */}
+              <div className="text-[26px] font-bold text-ink leading-none tracking-tight">
+                {symbol}
               </div>
-              <div className="flex items-baseline gap-2 mt-1 flex-wrap">
+              {/* Full company name — always its own line, truncated if long */}
+              <div className="text-xs text-ink-mute truncate mt-0.5">
+                {quote?.name ?? ""}
+              </div>
+              {/* Price + change */}
+              <div className="flex items-baseline gap-2 mt-1.5 flex-wrap">
                 <span className="text-[26px] font-bold text-ink tabular-nums leading-none">
                   {quote ? `$${quote.price.toFixed(2)}` : "—"}
                 </span>
@@ -149,11 +151,13 @@ export function TickerDetail({ symbol }: Props) {
               </div>
             </div>
 
-            {/* Consensus pill */}
+            {/* Consensus pill — tap to see how it's calculated */}
             {consensus && (
-              <div
+              <button
+                onClick={() => setShowConsensusInfo(true)}
                 className={clsx(
                   "px-3 py-2 rounded-xl flex flex-col items-center shrink-0 min-w-[62px]",
+                  "active:opacity-70 transition-opacity",
                   MOBILE_ACTION[consensus.action].bg,
                 )}
               >
@@ -168,7 +172,7 @@ export function TickerDetail({ symbol }: Props) {
                 <span className="text-[10px] text-ink-mute tabular-nums mt-0.5">
                   {Math.round(consensus.score * 100)}%
                 </span>
-              </div>
+              </button>
             )}
           </div>
 
@@ -230,6 +234,141 @@ export function TickerDetail({ symbol }: Props) {
             Signals are technical, not financial advice. They use historical price
             data and simple indicators. Created by Boon Boonyasirichok.
           </p>
+
+          {/* Consensus info modal */}
+          <AnimatePresence>
+            {showConsensusInfo && consensus && (
+              <>
+                {/* Backdrop */}
+                <motion.div
+                  key="consensus-backdrop"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="fixed inset-0 bg-black/40 z-50"
+                  onClick={() => setShowConsensusInfo(false)}
+                />
+                {/* Bottom sheet */}
+                <motion.div
+                  key="consensus-sheet"
+                  initial={{ y: 48, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  exit={{ y: 48, opacity: 0 }}
+                  transition={{ duration: 0.25, ease: "easeOut" }}
+                  className="fixed inset-x-0 bottom-0 z-50 px-3 pb-8"
+                >
+                  <div className="card rounded-2xl p-5">
+                    {/* Sheet header */}
+                    <div className="flex items-start justify-between gap-3 mb-4">
+                      <div>
+                        <div className="text-sm font-semibold text-ink">
+                          Overall recommendation
+                        </div>
+                        <div className="text-[11px] text-ink-mute mt-0.5">
+                          How this is calculated
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => setShowConsensusInfo(false)}
+                        className="w-6 h-6 rounded-full bg-surface-alt flex items-center justify-center text-ink-mute text-sm shrink-0"
+                        aria-label="Close"
+                      >
+                        ×
+                      </button>
+                    </div>
+
+                    {/* Verdict banner */}
+                    <div
+                      className={clsx(
+                        "px-4 py-3 rounded-xl mb-4 flex items-center justify-between",
+                        MOBILE_ACTION[consensus.action].bg,
+                      )}
+                    >
+                      <span
+                        className={clsx(
+                          "text-base font-bold tracking-wide",
+                          MOBILE_ACTION[consensus.action].text,
+                        )}
+                      >
+                        {consensus.action}
+                      </span>
+                      <span
+                        className={clsx(
+                          "text-sm font-semibold tabular-nums",
+                          MOBILE_ACTION[consensus.action].text,
+                        )}
+                      >
+                        {Math.round(consensus.score * 100)}% confidence
+                      </span>
+                    </div>
+
+                    {/* Explanation */}
+                    <div className="space-y-2.5 text-[12.5px] text-ink-soft leading-relaxed">
+                      <p>
+                        <span className="font-semibold text-ink">Action — </span>
+                        Majority vote across all {signals?.signals.length ?? 6} signals.{" "}
+                        <span className="text-bull font-medium">{consensus.BUY} BUY</span>
+                        {" · "}
+                        <span className="text-neutral_ font-medium">{consensus.HOLD} HOLD</span>
+                        {" · "}
+                        <span className="text-bear font-medium">{consensus.SELL} SELL</span>
+                        {" — so the overall call is "}
+                        <span className={clsx("font-semibold", MOBILE_ACTION[consensus.action].text)}>
+                          {consensus.action}
+                        </span>.
+                      </p>
+                      <p>
+                        <span className="font-semibold text-ink">Confidence — </span>
+                        Average of each signal's confidence score (0 = no conviction, 100% = maximum).
+                      </p>
+                    </div>
+
+                    {/* Per-signal breakdown */}
+                    {signals && (
+                      <div className="mt-4 pt-4 border-t border-black/[0.06]">
+                        <div className="text-[10.5px] uppercase tracking-wider text-ink-mute font-medium mb-2.5">
+                          Signal breakdown
+                        </div>
+                        <div className="space-y-2">
+                          {signals.signals.map((sig) => {
+                            const s = MOBILE_ACTION[sig.action];
+                            const pct = Math.round(sig.confidence * 100);
+                            return (
+                              <div key={sig.id} className="flex items-center gap-2">
+                                <div
+                                  className={clsx("w-0.5 h-4 rounded-full shrink-0", s.dot)}
+                                />
+                                <span className="text-[12px] text-ink-soft flex-1 truncate">
+                                  {sig.name}
+                                </span>
+                                <span
+                                  className={clsx(
+                                    "text-[11px] font-semibold shrink-0",
+                                    s.text,
+                                  )}
+                                >
+                                  {sig.action}
+                                </span>
+                                <span className="text-[10px] text-ink-mute tabular-nums w-7 text-right shrink-0">
+                                  {pct}%
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    <p className="text-[10px] text-ink-mute mt-4 leading-snug">
+                      Confidence scores are heuristic strength indicators, not calibrated
+                      probabilities. Not financial advice.
+                    </p>
+                  </div>
+                </motion.div>
+              </>
+            )}
+          </AnimatePresence>
         </div>
 
         {/* ── Desktop two-column layout (xl+) ───────────────────── */}
