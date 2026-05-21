@@ -52,8 +52,9 @@ TypeScript path alias `@/` resolves to the project root (set in `tsconfig.json`)
 - **Context-aware parameters**: every signal's lookback windows scale with the chart timeframe being viewed (short / medium / long contexts defined in `lib/signals/config.ts`)
 - **20 default tickers**: 10 ETFs (broad market + major sectors) + 10 popular individual stocks. Defined in `lib/tickers.ts`.
 - **Custom watchlist**: users can search Yahoo's universe and add tickers; list persists per-browser-per-machine via `localStorage`. A "Watching" section appears above ETFs/Stocks in the sidebar when non-empty.
-- **Apple-style UI**: frosted-glass cards, system font stack, fluid spring transitions; responsive down to mobile width with a collapsible sidebar.
-- **Signal tooltips**: each signal card has an `i` icon that expands an inline explanation with plain English, a worked example, and the confidence formula.
+- **Apple-style UI**: frosted-glass cards, system font stack, fluid spring transitions; responsive down to mobile width with a collapsible sidebar. Mobile has a dedicated one-screen layout (below `xl`) with ticker chip strip, compact signal rows, consensus pill, and collapsible stats.
+- **Signal tooltips**: each signal card has an `i` icon that expands an inline explanation with plain English, a worked example, and the confidence formula. On mobile, tapping the consensus pill opens a bottom sheet showing the majority-vote logic and per-signal breakdown.
+- **`robots.txt`** in place — search engines are blocked from indexing the site.
 - **API routes**: `/api/quote/[ticker]`, `/api/history/[ticker]?range=`, `/api/signals/[ticker]?context=`, `/api/search?q=`.
 
 ### Folder map
@@ -103,25 +104,24 @@ Things that might surprise future-Claude. Keep these in mind before changing rel
 
 In rough priority order:
 
-1. **Incorporate the UI update from Claude Design** (active — see Active Task). Ask Boon where the Claude Design output is before touching `components/`. Keep changes scoped to the visual layer unless the design implies new data dependencies.
-2. **Add a `robots.txt` or simple password gate** before sharing the Vercel URL widely. The deployed site is currently publicly indexable by anyone with the link.
-3. **Migrate to Next 16.** Main work: update `params` to `Promise<...>` and `await` it in the four route handlers under `app/api/*/route.ts`. Worth doing before the project gets serious traffic so we're on an actively-developed major version.
-4. **Add auth + backend** (NextAuth + Supabase free tier are the discussed options) so the watchlist can sync across devices instead of being per-browser `localStorage`.
-5. **Backtest the signals + build an ML ensemble model** — IN PROGRESS as the sibling project `lidr-ml` (local: `C:\Users\smnk1\Claude\Projects\lidr-ml`, GitHub: https://github.com/pavarit/lidr-ml). Python-first pipeline that ports each TS signal to Python, trains an ensemble model (stacked base learners over the six signals) to produce calibrated BUY/HOLD/SELL recommendations, and backtests with walk-forward / expanding-window CV from pre-2008 to today. The pipeline emits a versioned JSON artifact (predictions + calibrated confidences); the natural integration seam back into lidr is `/api/signals/[ticker]`, which can read the artifact directly (cheap) or proxy to a Python service later (item 7). Goal is to replace the current heuristic confidences with empirically calibrated probabilities.
-6. **Add fundamental signals** (earnings momentum, P/E percentile vs own history). Requires a paid data source — not on the immediate path.
-7. **Add a Python FastAPI microservice for computation-heavy work.** Decision: keep Next.js for the full frontend and as a thin API gateway; add Python as a separate service at the signals/computation layer when needed. The natural seam is `/api/signals/[ticker]` — Next.js can proxy to the Python service for heavy calls while simple signals stay in JS. Deploy the Python service on Railway or Render free tier alongside the Vercel frontend. Trigger: once `lidr-ml` (item 5) has a model worth serving live. Until then, lidr-ml writes a static artifact that lidr reads — no service needed.
+1. **Migrate to Next 16.** Main work: update `params` to `Promise<...>` and `await` it in the four route handlers under `app/api/*/route.ts`. Worth doing before the project gets serious traffic so we're on an actively-developed major version.
+2. **Add auth + backend** (NextAuth + Supabase free tier are the discussed options) so the watchlist can sync across devices instead of being per-browser `localStorage`.
+3. **Backtest the signals + build an ML ensemble model** — IN PROGRESS as the sibling project `lidr-ml` (local: `C:\Users\smnk1\Claude\Projects\lidr-ml`, GitHub: https://github.com/pavarit/lidr-ml). Python-first pipeline that ports each TS signal to Python, trains an ensemble model (stacked base learners over the six signals) to produce calibrated BUY/HOLD/SELL recommendations, and backtests with walk-forward / expanding-window CV from pre-2008 to today. The pipeline emits a versioned JSON artifact (predictions + calibrated confidences); the natural integration seam back into lidr is `/api/signals/[ticker]`, which can read the artifact directly (cheap) or proxy to a Python service later (item 5). Goal is to replace the current heuristic confidences with empirically calibrated probabilities.
+4. **Add fundamental signals** (earnings momentum, P/E percentile vs own history). Requires a paid data source — not on the immediate path.
+5. **Add a Python FastAPI microservice for computation-heavy work.** Decision: keep Next.js for the full frontend and as a thin API gateway; add Python as a separate service at the signals/computation layer when needed. The natural seam is `/api/signals/[ticker]` — Next.js can proxy to the Python service for heavy calls while simple signals stay in JS. Deploy the Python service on Railway or Render free tier alongside the Vercel frontend. Trigger: once `lidr-ml` (item 3) has a model worth serving live. Until then, lidr-ml writes a static artifact that lidr reads — no service needed.
+6. **Add a password gate** when sharing the URL more widely. `robots.txt` is already in place to block search indexing. For access control, the recommended approach is Next.js middleware + a simple login page with the password stored as a Vercel environment variable (one-time friction, cookie-based). Deliberately deferred — no urgency at current demo scale.
 
 ## Active Task
 
-Mobile UI improvements are now implemented (see 2026-05-20 Recent Changes entry). No active implementation task. Next priority is Next Up #2 (robots.txt or password gate before wider sharing).
+_Nothing currently in-flight._
 
-The lidr-ml sibling project (Next Up #5) is now scaffolded, verified, and pushed to its own GitHub repo. Ongoing ML iteration happens there, not here, until the bridge step (Next Up #5 → wiring the JSON artifact into `/api/signals/[ticker]`) is reached.
-
-<!-- When a task ships or pauses, replace the section above with `_Nothing currently in-flight._`
-     (plus the explanatory comment from git history). Keep the description tight: what is being
-     built, where it was left off, and any mid-flight decisions the next session needs to know. -->
+The lidr-ml sibling project (Next Up #3) is scaffolded and pushed to its own GitHub repo. Ongoing ML iteration happens there, not here, until the bridge step (wiring the JSON artifact into `/api/signals/[ticker]`) is reached.
 
 ## Recent Changes
+
+### 2026-05-20 — Mobile UI polish, robots.txt, housekeeping
+
+Followed up on the mobile redesign with three refinements to `components/TickerDetail.tsx`: ticker symbol font size raised to match the price (`text-[26px]`), full company name moved to its own line (fixing the flex-wrap gap that caused extra spacing on long names like VTI), and the consensus pill made tappable — it now opens a bottom-sheet modal explaining the majority-vote action and average-confidence calculation, with a per-signal breakdown. Added `public/robots.txt` disallowing all crawlers (`User-agent: * / Disallow: /`) to keep the site out of search indexes while it remains a personal demo. Discussed password gate options (Vercel built-in Pro-only, Next.js middleware + login page, or secret-URL approach); deliberately deferred — no urgency at current demo scale, `robots.txt` is sufficient for now. Renumbered Next Up accordingly.
 
 ### 2026-05-20 — Mobile UI redesign (Option D from Claude Design)
 
