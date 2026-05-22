@@ -102,6 +102,8 @@ Things that might surprise future-Claude. Keep these in mind before changing rel
 
 ## Next Up
 
+**Current strategic focus (set 2026-05-21):** the active priority is item #3 — proving the ML model in `lidr-ml` has a real edge over buy-and-hold. Until that's true, the website items below are deliberately parked: they're about *sharing* and *upkeep*, not about the core question of whether the recommendations are any good. In particular, item #5 (the FastAPI service) stays gated on `lidr-ml` producing a model worth serving live. See `lidr-ml`'s CLAUDE.md for the detailed model-side roadmap.
+
 In rough priority order:
 
 1. **Migrate to Next 16.** Main work: update `params` to `Promise<...>` and `await` it in the four route handlers under `app/api/*/route.ts`. Worth doing before the project gets serious traffic so we're on an actively-developed major version.
@@ -118,6 +120,10 @@ _Nothing currently in-flight._
 The lidr-ml sibling project (Next Up #3) is scaffolded and pushed to its own GitHub repo. Ongoing ML iteration happens there, not here, until the bridge step (wiring the JSON artifact into `/api/signals/[ticker]`) is reached.
 
 ## Recent Changes
+
+### 2026-05-21 — Roadmap framing: focus on proving the ML edge
+
+Planning-only change, no code. Boon confirmed the near-term goal is to prove `lidr-ml`'s model beats buy-and-hold before any serving/integration work. Added a "Current strategic focus" note at the top of Next Up making explicit that the website items here are parked behind that goal, and that the FastAPI service (#5) stays gated on `lidr-ml` producing a model worth serving live. The detailed reprioritization lives in `lidr-ml`'s CLAUDE.md, which was reordered the same day to put its cross-run results log first, then the signal-porting and model-building sequence, with the serving/integration chain gated behind an actual edge.
 
 ### 2026-05-20 — Mobile UI polish, robots.txt, housekeeping
 
