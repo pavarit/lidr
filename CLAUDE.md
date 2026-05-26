@@ -31,7 +31,7 @@ See [README.md → Data flow](README.md#data-flow) for the request diagram and t
 
 - Local dev: `npm install && npm run dev` → http://localhost:3000
 - Working directory: `C:\Users\smnk1\Claude\Projects\lidr` (deliberately outside OneDrive — see Key Decisions)
-- GitHub repo pushed and current
+- GitHub repo at https://github.com/pavarit/lidr — **public**, source-available under PolyForm Noncommercial 1.0.0 (see LICENSE)
 - Deployed and live at https://lidr-eta.vercel.app/ — every `git push` to `main` auto-deploys a new build
 - **Six signals running**: SMA crossover, RSI, MACD, Bollinger Bands, period-high/low breakout, volume-confirmed breakout
 - **Context-aware parameters**: every signal's lookback windows scale with the chart timeframe being viewed (short / medium / long contexts defined in `lib/signals/config.ts`)
@@ -120,6 +120,16 @@ _Nothing currently in-flight._
 The lidr-ml sibling project (Next Up #3) is scaffolded and pushed to its own GitHub repo. Ongoing ML iteration happens there, not here, until the bridge step (wiring the JSON artifact into `/api/signals/[ticker]`) is reached.
 
 ## Recent Changes
+
+### 2026-05-26 — Flip lidr repo to public
+
+The repo was private until today; lidr-ml has always been public. The mismatch was caught while verifying the LICENSE on GitHub (anonymous `raw.githubusercontent.com` returned 404 for lidr but 200 for lidr-ml). Both repos now public.
+
+The decision was driven by the license choice from earlier today: PolyForm Noncommercial 1.0.0 is a *source-available* license, designed to let people read and learn from the source while restricting commercial use — it's effectively dormant if the repo isn't visible. Now that lidr is public, the LICENSE file does the work it was put there to do. Additional knock-on effects: CI badge in the README renders for anonymous viewers (it was a private placeholder before), cross-links from lidr-ml's docs to lidr's GitHub URLs resolve for anyone (previously 404 for non-collaborators), and Boon's stated intent that "anyone in the future should be able to develop off the repo the easiest" is now actually true (no per-person invites needed).
+
+Updated **Current State** line to call out the public + PolyForm Noncommercial status explicitly so future-Claude orienting on this file knows the visibility posture without having to check GitHub.
+
+No file changes beyond the doc updates here. The visibility toggle was done in GitHub repo settings.
 
 ### 2026-05-26 — Relicense MIT → PolyForm Noncommercial 1.0.0
 
