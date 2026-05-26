@@ -69,6 +69,7 @@ types/
 
 ## Conventions (read before writing code)
 
+- **`main` is protected — all changes land via PR.** Direct pushes are blocked. Workflow: branch → commit → push → `gh pr create` → wait for green CI + Vercel preview → `gh pr merge --squash --delete-branch`. Full procedure in [CONTRIBUTING.md → Workflow](CONTRIBUTING.md#workflow). The merge to `main` is what triggers Vercel's production deploy, so anything on `main` has already passed CI and built successfully on Vercel's preview.
 - **Next.js 14 + TypeScript (strict).** Path alias `@/` resolves to the project root (set in `tsconfig.json`). ESLint runs via Next's built-in config.
 - **Type-check + lint before claiming work is done.** `npm run typecheck && npm run lint`. There is no automated test suite; these are the only gates.
 - **Signals are pure functions**: `(input: SignalInput) => SignalResult` in `lib/signals/`. Adding a new signal: create the file, then add one line to the `runAllSignals` array in `lib/signals/index.ts`. UI and route handlers need zero changes. Verify by tapping a ticker — no auto test.
@@ -120,6 +121,18 @@ _Nothing currently in-flight._
 The lidr-ml sibling project (Next Up #3) is scaffolded and pushed to its own GitHub repo. Ongoing ML iteration happens there, not here, until the bridge step (wiring the JSON artifact into `/api/signals/[ticker]`) is reached.
 
 ## Recent Changes
+
+### 2026-05-26 — Adopt protected-main PR workflow
+
+After hitting "build failed on Vercel" a few times today by pushing directly to `main`, decided to introduce a standard solo-dev workflow: `main` is protected by GitHub branch protection rules, all changes go through PRs with required green CI, and Vercel preview deploys provide a real production-like verification step before merge. No code-review requirement (sole developer); the gate is just "CI green + preview works."
+
+Code changes in this commit:
+
+- `package.json`: added `engines.node: "20.x"` so Vercel uses the same Node major as GitHub Actions CI. Eliminates the (rare-but-real) failure mode where CI passes on Node 20 but Vercel happens to build on a different version. CI ↔ Vercel build behavior should now be reliably aligned.
+- `CONTRIBUTING.md`: new top-level **Workflow** section with the full branch → PR → preview → merge → cleanup sequence, including the admin override note for emergencies.
+- `CLAUDE.md` Conventions: new bullet at the top of the section flagging that `main` is protected and pointing at CONTRIBUTING.md for the procedure.
+
+Branch protection settings themselves (require status checks, require linear history, require branches up-to-date) live in GitHub repo settings, not in git — applied separately in the GitHub UI. The README badges, CI workflow, and Vercel auto-deploy from `main` all continue to work; the only behavioral change is that "git push main" is no longer the path to production.
 
 ### 2026-05-26 — Flip lidr repo to public
 
