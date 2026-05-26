@@ -320,7 +320,7 @@ export function TickerDetail({ symbol }: Props) {
                       </p>
                       <p>
                         <span className="font-semibold text-ink">Confidence — </span>
-                        Average of each signal's confidence score (0 = no conviction, 100% = maximum).
+                        Average of each signal&apos;s confidence score (0 = no conviction, 100% = maximum).
                       </p>
                     </div>
 
