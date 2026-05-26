@@ -136,6 +136,16 @@ The lidr-ml sibling project (Next Up #3) is scaffolded and pushed to its own Git
 
 ## Recent Changes
 
+### 2026-05-26 — Drift-fix pass on README (Batch 1 of 5)
+
+First batch in a drift-fix arc mirroring the one applied to `lidr-ml` earlier today.
+
+- **README "How to add a new signal"** — was incomplete. Said "create file, add line to index.ts, that's it." Reality: if the new signal needs a tunable param, you also have to extend the `SignalParams` interface in `types/index.ts` AND add a value under each of the three contexts in `lib/signals/config.ts`. Section now lists the multi-file case explicitly, points at CONTRIBUTING.md for the full procedure, and replaces the stale "good next signals to try" list (which suggested signals that have already shipped) with a pointer to `lidr-ml` since most signal exploration has moved there.
+- **README "Push to GitHub" / "Deploy to Vercel"** — was framed as generic onboarding boilerplate, implying lidr was never deployed. Merged into a single **"Deploying your own copy"** section explicitly addressed at *forks*, with a callout that the canonical lidr is already live at `lidr-eta.vercel.app`. Also surfaced that every `git push` to `main` on a connected Vercel deploy auto-deploys (previously only documented in CLAUDE.md).
+- **Verified all four API route `revalidate` values** against the route handlers themselves. CLAUDE.md Conventions' "30s for quotes, 60s for history, 300s for signals, 60s for search" matches reality exactly. No change needed.
+
+Remaining batches: LICENSE + CONTRIBUTING + badges (B2), API + type-shape reference in README (B3), CI workflow (B4), README/CLAUDE.md split + data flow diagram (B5).
+
 ### 2026-05-26 — Adopt Conventions + Gotchas; partition for one-fact-one-place
 
 Restructured CLAUDE.md to match the partition rule applied to `lidr-ml`'s file the same day. Added two new sections: **Conventions** (procedural rules — Next 14 + strict TS, the typecheck-and-lint-only gate, the signal-pluggability rule for adding new signals, yahoo-finance2 v3 usage, per-route `revalidate`, noreply-email-on-commits) and **Gotchas** (things that bit us — OneDrive breaking Next.js, the silent v2→v3 yahoo-finance2 break, Yahoo's rate-limits on data-center IPs, GitHub email privacy rejecting personal-email pushes, Next 14 + Windows-native dev-server quirks, PowerShell execution policy). Trimmed **Key Decisions** from 10 items to 6 — kept only the *why we chose X over Y* items (Next 14 pin, pluggable signals as a design choice, signal context system, confidence-as-heuristic acknowledgment, per-browser watchlist, per-route caching). Rules moved to Conventions; warnings moved to Gotchas. Each fact now appears once with cross-references replacing the duplicates. Added the one-fact-one-place rule to Maintenance Instructions. No code changes.

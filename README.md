@@ -53,7 +53,11 @@ The first page load may take a few seconds while Yahoo Finance is queried for qu
 
 ---
 
-## Push to GitHub
+## Deploying your own copy
+
+> The canonical lidr is already deployed at <https://lidr-eta.vercel.app/>. The steps below are for **forks** — anyone who wants their own copy running on their own Vercel account.
+
+### Push your fork to GitHub
 
 ```bash
 git init
@@ -72,26 +76,26 @@ Or with the GitHub CLI:
 gh repo create lidr --private --source=. --remote=origin --push
 ```
 
----
+### Deploy to Vercel (one-click hosting)
 
-## Deploy to Vercel (one-click hosting)
-
-1. Push to GitHub (above).
+1. Push your fork to GitHub (above).
 2. Go to <https://vercel.com/new>, import the repo.
 3. Accept defaults — Vercel auto-detects Next.js.
 4. Click **Deploy**.
 
-You'll get a public URL (e.g. `lidr.vercel.app`). Free tier is plenty for personal use.
+You'll get a public URL (e.g. `lidr.vercel.app`). Free tier is plenty for personal use. After the first deploy, every `git push` to `main` auto-deploys a new build via the Vercel GitHub integration — no manual step.
 
 ---
 
 ## How to add a new signal
 
-1. Create `lib/signals/<your-signal>.ts` that exports a function `(input: SignalInput) => SignalResult`. `SignalInput` gives you `closes`, `volumes`, and `params` (the context-tuned lookback windows from `lib/signals/config.ts`).
+1. Create `lib/signals/<your-signal>.ts` exporting a function `(input: SignalInput) => SignalResult`. `SignalInput` gives you `closes`, `volumes`, and `params` (the context-tuned lookback windows from `lib/signals/config.ts`).
 2. Add it to the array in `lib/signals/index.ts`.
-3. That's it — it'll appear in the right-hand panel automatically across all three contexts (short / medium / long).
+3. **If your signal needs a new tunable parameter** (e.g. a custom lookback window), also: (a) add the field to the `SignalParams` interface in `types/index.ts`, and (b) add a value for it under each of the three contexts (`short` / `medium` / `long`) in `lib/signals/config.ts`.
 
-Good next signals to try: **MACD divergence detection**, **OBV (On-Balance Volume)**, **rate-of-change**, **earnings momentum** (this last one needs a fundamental data source).
+The signal will appear in the right-hand panel automatically across all three contexts. See [CONTRIBUTING.md](CONTRIBUTING.md) for the full procedure, type shapes, and confidence convention.
+
+> Note: most new-signal exploration happens in the sibling [`lidr-ml`](https://github.com/pavarit/lidr-ml) project, which is where backtesting + calibrated probabilities live. Signals get prototyped and validated there before potentially being added here.
 
 ---
 
