@@ -73,17 +73,59 @@ All routes live under `app/api/<name>/route.ts` and follow the same pattern (see
 
 Edit [`lib/tickers.ts`](lib/tickers.ts) and add an entry to either the `ETFS` or `STOCKS` array. The sidebar reflects it on the next reload. Users can also add their own via the search box; their list persists per-browser in `localStorage` under the key `lidr.custom-tickers.v1`.
 
+## Workflow
+
+`main` is protected — direct pushes are blocked, and every change has to go through a pull request with green CI. The flow:
+
+```bash
+# 1. Branch off the latest main
+git checkout main && git pull
+git checkout -b some-descriptive-name
+
+# 2. Make your changes, commit locally
+git add ...
+git commit -m "..."
+
+# 3. Push the branch
+git push -u origin some-descriptive-name
+
+# 4. Open a PR
+gh pr create --fill   # uses your last commit message as the PR title/body
+```
+
+After the PR is open, two checks run automatically:
+
+- **GitHub Actions CI** — runs `typecheck + lint + build`. Status appears as a check on the PR. Must be green to merge.
+- **Vercel preview deploy** — Vercel posts a comment on the PR with a temporary URL (something like `lidr-<branch>-pavarit.vercel.app`). Click through and verify the change actually works on Vercel's infrastructure — chart loads, signals appear, etc. This is the real catch-it-before-production step.
+
+When both pass and the preview looks right:
+
+```bash
+# 5. Merge with squash (one commit per PR on main)
+gh pr merge --squash --delete-branch
+
+# 6. Sync your local main
+git checkout main && git pull
+```
+
+The merge to `main` is what triggers Vercel's production deploy. Because the same code already built successfully on the preview deploy, production rebuilds are essentially a re-run of a build you already saw work.
+
+> Emergencies: as the repo admin, you can override branch protection and push directly. Don't make a habit of it. If you find yourself reaching for the override often, the workflow needs adjustment, not a bypass.
+
 ## Commit + PR conventions
 
-- Branch off `main`. PRs target `main`.
 - Commit messages: short imperative title, blank line, then prose. Wrap at ~72 chars.
 - Use the GitHub `...@users.noreply.github.com` email form — GitHub email-privacy rejects pushes with personal emails (see CLAUDE.md Gotchas).
-- Each commit should pass `npm run typecheck && npm run lint && npm run build`.
+- Each commit should pass `npm run typecheck && npm run lint && npm run build` locally before pushing.
 - For meaningful changes, append a dated entry to [CLAUDE.md](CLAUDE.md) → **Recent Changes** (one paragraph, what + why).
 
 ## Deploying your own copy
 
 See [README.md → Deploying your own copy](README.md#deploying-your-own-copy).
+
+## License of contributions
+
+By opening a pull request, you agree that your contribution is licensed under the same [PolyForm Noncommercial 1.0.0](LICENSE) terms as the rest of the project. If you need different terms for a specific contribution, raise it in the PR description so we can discuss before merging.
 
 ## Where to start reading
 

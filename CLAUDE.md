@@ -31,7 +31,7 @@ See [README.md → Data flow](README.md#data-flow) for the request diagram and t
 
 - Local dev: `npm install && npm run dev` → http://localhost:3000
 - Working directory: `C:\Users\smnk1\Claude\Projects\lidr` (deliberately outside OneDrive — see Key Decisions)
-- GitHub repo pushed and current
+- GitHub repo at https://github.com/pavarit/lidr — **public**, source-available under PolyForm Noncommercial 1.0.0 (see LICENSE)
 - Deployed and live at https://lidr-eta.vercel.app/ — every `git push` to `main` auto-deploys a new build
 - **Six signals running**: SMA crossover, RSI, MACD, Bollinger Bands, period-high/low breakout, volume-confirmed breakout
 - **Context-aware parameters**: every signal's lookback windows scale with the chart timeframe being viewed (short / medium / long contexts defined in `lib/signals/config.ts`)
@@ -69,6 +69,7 @@ types/
 
 ## Conventions (read before writing code)
 
+- **`main` is protected — all changes land via PR.** Direct pushes are blocked. Workflow: branch → commit → push → `gh pr create` → wait for green CI + Vercel preview → `gh pr merge --squash --delete-branch`. Full procedure in [CONTRIBUTING.md → Workflow](CONTRIBUTING.md#workflow). The merge to `main` is what triggers Vercel's production deploy, so anything on `main` has already passed CI and built successfully on Vercel's preview.
 - **Next.js 14 + TypeScript (strict).** Path alias `@/` resolves to the project root (set in `tsconfig.json`). ESLint runs via Next's built-in config.
 - **Type-check + lint before claiming work is done.** `npm run typecheck && npm run lint`. There is no automated test suite; these are the only gates.
 - **Signals are pure functions**: `(input: SignalInput) => SignalResult` in `lib/signals/`. Adding a new signal: create the file, then add one line to the `runAllSignals` array in `lib/signals/index.ts`. UI and route handlers need zero changes. Verify by tapping a ticker — no auto test.
@@ -120,6 +121,36 @@ _Nothing currently in-flight._
 The lidr-ml sibling project (Next Up #3) is scaffolded and pushed to its own GitHub repo. Ongoing ML iteration happens there, not here, until the bridge step (wiring the JSON artifact into `/api/signals/[ticker]`) is reached.
 
 ## Recent Changes
+
+### 2026-05-26 — Adopt protected-main PR workflow
+
+After hitting "build failed on Vercel" a few times today by pushing directly to `main`, decided to introduce a standard solo-dev workflow: `main` is protected by GitHub branch protection rules, all changes go through PRs with required green CI, and Vercel preview deploys provide a real production-like verification step before merge. No code-review requirement (sole developer); the gate is just "CI green + preview works."
+
+Code changes in this commit:
+
+- `package.json`: added `engines.node: "20.x"` so Vercel uses the same Node major as GitHub Actions CI. Eliminates the (rare-but-real) failure mode where CI passes on Node 20 but Vercel happens to build on a different version. CI ↔ Vercel build behavior should now be reliably aligned.
+- `CONTRIBUTING.md`: new top-level **Workflow** section with the full branch → PR → preview → merge → cleanup sequence, including the admin override note for emergencies.
+- `CLAUDE.md` Conventions: new bullet at the top of the section flagging that `main` is protected and pointing at CONTRIBUTING.md for the procedure.
+
+Branch protection settings themselves (require status checks, require linear history, require branches up-to-date) live in GitHub repo settings, not in git — applied separately in the GitHub UI. The README badges, CI workflow, and Vercel auto-deploy from `main` all continue to work; the only behavioral change is that "git push main" is no longer the path to production.
+
+### 2026-05-26 — Flip lidr repo to public
+
+The repo was private until today; lidr-ml has always been public. The mismatch was caught while verifying the LICENSE on GitHub (anonymous `raw.githubusercontent.com` returned 404 for lidr but 200 for lidr-ml). Both repos now public.
+
+The decision was driven by the license choice from earlier today: PolyForm Noncommercial 1.0.0 is a *source-available* license, designed to let people read and learn from the source while restricting commercial use — it's effectively dormant if the repo isn't visible. Now that lidr is public, the LICENSE file does the work it was put there to do. Additional knock-on effects: CI badge in the README renders for anonymous viewers (it was a private placeholder before), cross-links from lidr-ml's docs to lidr's GitHub URLs resolve for anyone (previously 404 for non-collaborators), and Boon's stated intent that "anyone in the future should be able to develop off the repo the easiest" is now actually true (no per-person invites needed).
+
+Updated **Current State** line to call out the public + PolyForm Noncommercial status explicitly so future-Claude orienting on this file knows the visibility posture without having to check GitHub.
+
+No file changes beyond the doc updates here. The visibility toggle was done in GitHub repo settings.
+
+### 2026-05-26 — Relicense MIT → PolyForm Noncommercial 1.0.0
+
+Relicensed both lidr and lidr-ml from MIT to PolyForm Noncommercial 1.0.0. The MIT choice (made earlier today during the public-facing hygiene batch) was the wrong default for the actual desired stance: "anyone can read and learn from this; non-commercial / research / educational use is welcome without asking; commercial use requires permission, including running this as a hosted service." MIT lets anyone commercialize, including closed-source SaaS clones; that's the scenario explicitly to be prevented. PolyForm Noncommercial 1.0.0 is the lawyer-drafted source-available license that matches the stance.
+
+Mechanics: replaced `LICENSE` with the PolyForm text (copyright Boon Boonyasirichok); added `"license": "SEE LICENSE IN LICENSE"` to `package.json` (PolyForm-Noncommercial-1.0.0 is on SPDX, but npm's preferred form alongside `private: true` is the file pointer); swapped the README MIT badge for a PolyForm Noncommercial badge; rewrote the README "License" section in plain English; added a "License of contributions" section to CONTRIBUTING.md.
+
+Worth knowing for future Claude: anyone who grabbed lidr under MIT before 2026-05-26 keeps MIT rights to that snapshot — but the repo is recent with effectively zero external adoption, so practical exposure is nil. Future contributors agree to PolyForm at the time of contribution. The author can commercialize freely; the license restricts other people, not the licensor. Dual-licensing to specific parties is always an option. Relicensing back to a permissive license later requires consent from any external contributor whose code is still in the repo — sooner is easier; right now is the cleanest window because there are zero external contributors.
 
 ### 2026-05-26 — Log Next.js CVE situation; mark migration CVE-driven
 
