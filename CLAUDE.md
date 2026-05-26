@@ -82,23 +82,38 @@ types/
   index.ts               shared TypeScript types
 ```
 
+## Conventions (read before writing code)
+
+- **Next.js 14 + TypeScript (strict).** Path alias `@/` resolves to the project root (set in `tsconfig.json`). ESLint runs via Next's built-in config.
+- **Type-check + lint before claiming work is done.** `npm run typecheck && npm run lint`. There is no automated test suite; these are the only gates.
+- **Signals are pure functions**: `(input: SignalInput) => SignalResult` in `lib/signals/`. Adding a new signal: create the file, then add one line to the `runAllSignals` array in `lib/signals/index.ts`. UI and route handlers need zero changes. Verify by tapping a ticker — no auto test.
+- **yahoo-finance2 v3 usage rules**: always instantiate (`const yahooFinance = new YahooFinance()`); never call `suppressNotices()` (removed in v3 — will crash all API routes). Methods used: `search()`, `quote()`, `chart()`.
+- **Every `app/api/*/route.ts` exports `revalidate`.** Current values: 30s for quotes, 60s for history, 300s for signals, 60s for search. Set to `0` to make a route live.
+- **Git commits use the GitHub noreply email** (`...@users.noreply.github.com`), not personal email. GitHub email privacy is on; pushes authored with the personal email are rejected.
+
+See **Gotchas** below for the past failures that motivated several of these rules.
+
 ## Key Decisions
 
-Things that might surprise future-Claude. Keep these in mind before changing related code.
+Strategic forks in the road — *why we chose X over Y*. For procedural rules see Conventions; for things that bit us see Gotchas.
 
 - **Pinned to Next 14, not 15/16.** Next 16 made App Router route handler `params` async, which would break the four files under `app/api/*/route.ts`. Migration is on Next Up but explicitly deferred until before public launch.
-- **Project lives outside OneDrive deliberately.** OneDrive sync interfered with Next.js's file watcher (broke hot-reload, served stale compiled code from `.next/`) and locked files mid-build. If a future move is ever proposed, keep it out of OneDrive paths.
-- **Signals are pluggable by design.** Each is a pure function `(SignalInput) → SignalResult` in `lib/signals/`. Adding a new one requires only: a new file, plus one line in the `runAllSignals` array in `lib/signals/index.ts`. The route and UI need zero changes.
+- **Signals are pluggable by design.** Each is a pure function in `lib/signals/`; the registry + UI know nothing about specific signals. Made adding RSI / MACD / Bollinger / breakout / volume to the original SMA-only build cheap, and will make consuming `lidr-ml`'s artifact cheap when that bridge lands.
 - **Signal context system.** Three contexts: `short` (1M chart view), `medium` (3M view), `long` (every other timeframe — 1D, 1W, 1Y, 5Y, ALL). Each has a `SignalParams` set in `lib/signals/config.ts`. Mapping is `contextForTimeframe()`. The frontend refetches signals when the user changes timeframe.
-- **Confidence values are heuristics, NOT probabilities.** They're normalized strength scores ranging 0–1 based on how far past a threshold the signal is. The UI footer is honest about this; do not present them as calibrated probabilities. Real probabilities would require backtesting (Level 2 from prior discussion: empirical win rates from historical data).
-- **Custom watchlist is per-browser-per-machine.** No cross-device sync. Multi-device sync requires auth + a backend, which is a separate roadmap item (Next Up #4).
-- **yahoo-finance2 v3 quirks to remember**:
-  - Default export is the `YahooFinance` *class*, not a singleton. Always: `const yahooFinance = new YahooFinance()`.
-  - `suppressNotices()` no longer exists. Don't reintroduce it; it'll crash all API routes.
-  - Methods used: `search()`, `quote()`, `chart()`.
-- **Yahoo is unofficial.** No API key needed but data center IPs can be rate-limited. If after Vercel deploy all three endpoints (`/api/quote`, `/api/history`, `/api/signals`) start 500ing in production while working locally, that's the most likely cause. Rotating user agents or switching to a paid source (Polygon, Finnhub) are the workarounds.
-- **GitHub commits use the noreply email** (`...@users.noreply.github.com`), not personal email. GitHub email privacy protection is on; commits authored with the personal email will be rejected on push.
-- **API caching at the route level.** Each `app/api/*/route.ts` exports `revalidate` (30s for quotes, 60s for history, 300s for signals, 60s for search). To make a route live, set to 0.
+- **Confidence values are heuristics, NOT probabilities.** Normalized strength scores ranging 0–1 based on how far past a threshold the signal is. The UI footer is honest about this; do not present them as calibrated probabilities. Replacing them with empirically calibrated probabilities is the entire point of `lidr-ml`.
+- **Custom watchlist is per-browser-per-machine.** No cross-device sync. Chose simplicity over auth + backend for the prototype phase; multi-device sync is Next Up #2.
+- **Per-route caching, not a central cache.** Each route handler picks its own `revalidate`. Trade-off: more flexibility, slightly more places to look when investigating a stale value.
+
+## Gotchas
+
+Non-obvious things that bit us. Each entry earned its place by causing a real problem.
+
+- **OneDrive sync breaks Next.js.** Sync interferes with the file watcher (kills hot-reload), holds locks mid-compile, and serves stale `.next/` builds. The project lives at `C:\Users\smnk1\Claude\Projects\lidr` *deliberately* outside any OneDrive path — do not move it back, even if a future tidy-up thinks the location looks ad-hoc.
+- **yahoo-finance2 v3 silently broke v2 code.** v2's default singleton was removed (`new YahooFinance()` is now required) and `suppressNotices()` was deleted. v2-style code does not warn — it crashes all API routes at request time. Bit us on the initial deploy.
+- **Yahoo Finance is unofficial — data-center IPs may be rate-limited.** If all three production endpoints (`/api/quote`, `/api/history`, `/api/signals`) start 500ing on Vercel while localhost is fine, that's the most likely cause. Workarounds: rotate user agents, or fall back to a paid source (Polygon, Finnhub).
+- **GitHub email privacy rejects pushes with the personal email.** Use the `...@users.noreply.github.com` form on every commit. The initial push to GitHub bounced for this reason.
+- **Next 14 + Windows native: `next dev` returns 404 for all routes on a clean start.** No compilation occurs in dev mode without an existing `.next/` cache; `next start` then renders dynamically with dev-mode CSS paths that don't exist in the production build. Vercel auto-deploy is the verification path when on Windows native. Less urgent now that the workflow has moved to WSL — but if you're back on PowerShell for any reason, this will resurface.
+- **PowerShell execution policy blocks npm scripts on a fresh Windows install.** First-time setup needs `Set-ExecutionPolicy RemoteSigned -Scope CurrentUser`. Not relevant in WSL.
 
 ## Next Up
 
@@ -120,6 +135,10 @@ _Nothing currently in-flight._
 The lidr-ml sibling project (Next Up #3) is scaffolded and pushed to its own GitHub repo. Ongoing ML iteration happens there, not here, until the bridge step (wiring the JSON artifact into `/api/signals/[ticker]`) is reached.
 
 ## Recent Changes
+
+### 2026-05-26 — Adopt Conventions + Gotchas; partition for one-fact-one-place
+
+Restructured CLAUDE.md to match the partition rule applied to `lidr-ml`'s file the same day. Added two new sections: **Conventions** (procedural rules — Next 14 + strict TS, the typecheck-and-lint-only gate, the signal-pluggability rule for adding new signals, yahoo-finance2 v3 usage, per-route `revalidate`, noreply-email-on-commits) and **Gotchas** (things that bit us — OneDrive breaking Next.js, the silent v2→v3 yahoo-finance2 break, Yahoo's rate-limits on data-center IPs, GitHub email privacy rejecting personal-email pushes, Next 14 + Windows-native dev-server quirks, PowerShell execution policy). Trimmed **Key Decisions** from 10 items to 6 — kept only the *why we chose X over Y* items (Next 14 pin, pluggable signals as a design choice, signal context system, confidence-as-heuristic acknowledgment, per-browser watchlist, per-route caching). Rules moved to Conventions; warnings moved to Gotchas. Each fact now appears once with cross-references replacing the duplicates. Added the one-fact-one-place rule to Maintenance Instructions. No code changes.
 
 ### 2026-05-21 — Roadmap framing: focus on proving the ML edge
 
@@ -151,6 +170,7 @@ Notable issues worked through: PowerShell execution policy required `Set-Executi
 
 If you (a future AI assistant joining this project) make meaningful changes, also update this file in the same session.
 
-- **Keep evergreen sections current and accurate.** Project Goal, Stack, Current State, Key Decisions, and Next Up should reflect reality at all times. If your work invalidates a fact in any of these sections, update it before ending the session.
+- **Keep evergreen sections current and accurate.** Project Goal, Stack, Data Flow, Current State, Conventions, Key Decisions, Gotchas, and Next Up should reflect reality at all times. If your work invalidates a fact in any of these sections, update it before ending the session.
+- **Each fact lives in one section.** Conventions = the rule. Key Decisions = why we chose X over Y. Gotchas = what bit us. If you find yourself writing the same fact in two places, pick the canonical home and cross-reference from the other.
 - **Append a dated entry to Recent Changes for each session that produces real changes.** Use a `### YYYY-MM-DD — short title` header followed by a paragraph (not a bullet list) describing what was done and why. Include any decisions made or rationale that future-Claude would benefit from knowing.
 - **Archive when Recent Changes exceeds 10 entries.** Fold the oldest 5 entries into a single section titled `## Archived Summary` at the bottom of the file (do not delete them). The archive must preserve decisions, rationale, and context that might still matter — compress narratives, not insights. Do not reduce it to a bare list of dates; capture *what* changed and *why* it mattered enough to remember.
