@@ -33,6 +33,44 @@ Built to be cheap to run, fast to iterate on, and easy to grow into a real produ
 
 ---
 
+## Data flow
+
+```
+TickerDetail.tsx (browser)
+   │
+   │ on click / timeframe change: three parallel fetches
+   ▼
+┌──────────────────────────────────────────────────────┐
+│  Next.js API routes (app/api/*)                      │
+│                                                       │
+│  /api/quote/[ticker]              (revalidate 30 s)  │
+│  /api/history/[ticker]?range=     (revalidate 60 s)  │
+│  /api/signals/[ticker]?context=   (revalidate 300 s) │
+└──────────────────────┬───────────────────────────────┘
+                       │
+                       ▼
+                 lib/yahoo.ts
+              (fetchQuote / fetchHistory /
+               fetchSignalSeries → ~3 yr daily closes)
+                       │
+                       ▼
+                 Yahoo Finance
+                       │  signal route only:
+                       ▼
+              lib/signals/index.ts
+              runAllSignals(closes, volumes, context)
+                       │
+   ┌────────┬────────┬─┴──────┬─────────┬──────────┬─────────┐
+   ▼        ▼        ▼        ▼         ▼          ▼         │
+ sma.ts  rsi.ts  macd.ts  bollinger  breakout    volume.ts   │
+                                                              │
+                       returns SignalResult[] (action, ──────┘
+                                               confidence,
+                                               summary, ...)
+```
+
+`context` is one of `short` / `medium` / `long`, mapped from the chart timeframe by `contextForTimeframe()` in [`lib/signals/config.ts`](lib/signals/config.ts). Each context picks a different `SignalParams` block (lookback windows). When the user changes timeframe the frontend re-issues the signals and history fetches; the quote fetch stays cached for the same ticker.
+
 ## Tech stack
 
 - **Next.js 14** (App Router) + **TypeScript** — frontend, API routes, and server-side signal computation in a single deployable unit.

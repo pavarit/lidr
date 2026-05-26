@@ -21,26 +21,11 @@ lidr is a signal-driven robo-advisor — a web app that recommends **BUY / HOLD 
 
 ## Commands
 
-```bash
-npm run dev        # start dev server → http://localhost:3000
-npm run build      # production build (run before deploying)
-npm run lint       # ESLint (Next.js built-in config)
-npm run typecheck  # tsc --noEmit (no test suite exists yet)
-```
-
-There are no automated tests. Type checking and linting are the only static-analysis gates.
+See [README.md → Run it locally](README.md#run-it-locally) for the canonical scripts. Targets: `npm run dev` / `build` / `start` / `lint` / `typecheck`. No `test` script (no test suite — `typecheck + lint + build` are the only gates; CI runs all three on every push). TypeScript path alias `@/` resolves to the project root (set in `tsconfig.json`).
 
 ## Data Flow
 
-A user click on a ticker triggers three parallel fetches from `components/TickerDetail.tsx`:
-
-1. `/api/quote/[ticker]` → `lib/yahoo.ts::fetchQuote()` — current price + stats
-2. `/api/history/[ticker]?range=` → `lib/yahoo.ts::fetchHistory()` — OHLCV series for the chart
-3. `/api/signals/[ticker]?context=` → `lib/yahoo.ts::fetchSignalSeries()` (always 3 years of daily closes) → `lib/signals/index.ts::runAllSignals()` → individual signal files
-
-When the user changes the timeframe, `contextForTimeframe()` (`lib/signals/config.ts`) remaps it to a context string, and only the signals fetch is re-issued with the new context. The chart fetch also re-issues with the new `range=` param.
-
-TypeScript path alias `@/` resolves to the project root (set in `tsconfig.json`).
+See [README.md → Data flow](README.md#data-flow) for the request diagram and the contextForTimeframe mapping. This section previously held the narrative version; it's been folded into README so there's one source of truth.
 
 ## Current State
 
@@ -135,6 +120,16 @@ _Nothing currently in-flight._
 The lidr-ml sibling project (Next Up #3) is scaffolded and pushed to its own GitHub repo. Ongoing ML iteration happens there, not here, until the bridge step (wiring the JSON artifact into `/api/signals/[ticker]`) is reached.
 
 ## Recent Changes
+
+### 2026-05-26 — README/CLAUDE.md split + data flow diagram (Batch 5 of 5)
+
+Final batch in the drift-fix arc. README is now the public face; CLAUDE.md is leaner and Claude-focused.
+
+- **README** gained a **Data flow** section with an ASCII diagram showing the three parallel fetches from `TickerDetail.tsx` → API routes → `lib/yahoo.ts` → Yahoo + signal computation. Mirrors lidr-ml's Architecture diagram style. Includes the contextForTimeframe rule inline.
+- **CLAUDE.md "Commands"** trimmed to a one-liner pointing at README's Run-it-locally section (canonical home). Kept the path-alias detail and the no-test-suite framing since they're Claude-facing context.
+- **CLAUDE.md "Data Flow"** also trimmed — the narrative version was duplicating what the README diagram now shows. Single source of truth in README.
+
+Net effect across the 5-batch arc: every public-facing contract is in README/CONTRIBUTING (API endpoints + revalidate values, signal type shapes, multi-file signal-add procedure, license, contribution rules); LICENSE + CONTRIBUTING + CI workflow + badge row exist; "good next signals" suggestions point at lidr-ml (where backtesting lives) instead of a stale list; Push/Deploy sections reframed as fork-targeted; data flow diagram in README. CLAUDE.md retains: Project Goal, Stack, trimmed Commands/Data-Flow pointers, Current State, Folder map, Conventions, Key Decisions, Gotchas, Next Up, Active Task, Recent Changes, Maintenance Instructions.
 
 ### 2026-05-26 — Drift-fix pass on README (Batch 1 of 5)
 
