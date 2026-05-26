@@ -1,5 +1,10 @@
 # lidr
 
+[![Next.js 14](https://img.shields.io/badge/Next.js-14-black?logo=next.js)](https://nextjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Vercel](https://img.shields.io/badge/deployed-Vercel-black?logo=vercel)](https://lidr-eta.vercel.app/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+
 A clean, signal-driven robo-advisor prototype that recommends **buy / hold / sell** actions on a curated list of ETFs and individual stocks.
 
 Built to be cheap to run, fast to iterate on, and easy to grow into a real product.
@@ -108,6 +113,16 @@ Edit `lib/tickers.ts` and add an entry to either the `ETFS` or `STOCKS` array. T
 ## More context
 
 For the detailed folder structure, design decisions, current roadmap, and recent change log, see [`CLAUDE.md`](CLAUDE.md).
+
+---
+
+## Contributing
+
+PRs and issues welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, the full signal-adding procedure with type shapes, the API-route conventions, and commit/PR rules.
+
+## License
+
+[MIT](LICENSE) — see the LICENSE file for full text.
 
 ---
 
