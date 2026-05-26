@@ -85,6 +85,10 @@ Edit [`lib/tickers.ts`](lib/tickers.ts) and add an entry to either the `ETFS` or
 
 See [README.md → Deploying your own copy](README.md#deploying-your-own-copy).
 
+## License of contributions
+
+By opening a pull request, you agree that your contribution is licensed under the same [PolyForm Noncommercial 1.0.0](LICENSE) terms as the rest of the project. If you need different terms for a specific contribution, raise it in the PR description so we can discuss before merging.
+
 ## Where to start reading
 
 1. `README.md` — what + why + how to run

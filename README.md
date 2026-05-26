@@ -4,7 +4,7 @@
 [![Next.js 14](https://img.shields.io/badge/Next.js-14-black?logo=next.js)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Vercel](https://img.shields.io/badge/deployed-Vercel-black?logo=vercel)](https://lidr-eta.vercel.app/)
-[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![License: PolyForm Noncommercial](https://img.shields.io/badge/license-PolyForm--Noncommercial%201.0.0-blue.svg)](LICENSE)
 
 A clean, signal-driven robo-advisor prototype that recommends **buy / hold / sell** actions on a curated list of ETFs and individual stocks.
 
@@ -202,7 +202,14 @@ PRs and issues welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for development s
 
 ## License
 
-[MIT](LICENSE) — see the LICENSE file for full text.
+**[PolyForm Noncommercial 1.0.0](LICENSE)** — full text in the LICENSE file.
+
+In plain English:
+
+- ✅ Free to use, modify, and share for any **noncommercial** purpose — personal research, education, hobby projects, evaluation, work at a charitable / educational / public-research organization.
+- ❌ **Commercial use requires a separate license** from the copyright holder. This includes running this code as a hosted service, embedding it in a product you sell, or otherwise using it as part of revenue-generating activity.
+
+If you want to use lidr commercially, open a GitHub issue or contact the author directly to discuss licensing.
 
 ---
 
