@@ -6,10 +6,11 @@ export const revalidate = 30;
 
 export async function GET(
   _req: Request,
-  { params }: { params: { ticker: string } },
+  { params }: { params: Promise<{ ticker: string }> },
 ) {
+  const { ticker } = await params;
   try {
-    const quote = await fetchQuote(params.ticker.toUpperCase());
+    const quote = await fetchQuote(ticker.toUpperCase());
     return NextResponse.json(quote);
   } catch (err: any) {
     return NextResponse.json(

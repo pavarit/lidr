@@ -11,9 +11,10 @@ const VALID_CONTEXTS: SignalContext[] = ["short", "medium", "long"];
 
 export async function GET(
   req: Request,
-  { params }: { params: { ticker: string } },
+  { params }: { params: Promise<{ ticker: string }> },
 ) {
-  const symbol = params.ticker.toUpperCase();
+  const { ticker } = await params;
+  const symbol = ticker.toUpperCase();
   const { searchParams } = new URL(req.url);
   const rawCtx = (searchParams.get("context") ?? "long").toLowerCase() as SignalContext;
   const context: SignalContext = VALID_CONTEXTS.includes(rawCtx) ? rawCtx : "long";
