@@ -31,5 +31,8 @@ Thumbs.db
 .vscode/
 .idea/
 
+# Claude Code (per-machine; shared config lives in .claude/launch.json + .claude/settings.json)
+.claude/settings.local.json
+
 # Vercel
 .vercel
