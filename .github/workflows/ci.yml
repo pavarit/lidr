@@ -11,7 +11,10 @@ jobs:
         with:
           node-version: "20"
           cache: "npm"
-      - run: npm ci
+      # Using `npm install` (not `npm ci`) because package-lock.json may be
+      # behind package.json until contributors run `npm install` locally to
+      # refresh it. Switch back to `npm ci` once lock is consistently committed.
+      - run: npm install
       - run: npm run typecheck
       - run: npm run lint
       - run: npm run build
