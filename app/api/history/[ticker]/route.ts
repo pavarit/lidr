@@ -8,14 +8,15 @@ const VALID: Timeframe[] = ["1D", "1W", "1M", "3M", "1Y", "5Y", "ALL"];
 
 export async function GET(
   req: Request,
-  { params }: { params: { ticker: string } },
+  { params }: { params: Promise<{ ticker: string }> },
 ) {
+  const { ticker } = await params;
   const { searchParams } = new URL(req.url);
   const tfParam = (searchParams.get("range") ?? "1M").toUpperCase() as Timeframe;
   const timeframe: Timeframe = VALID.includes(tfParam) ? tfParam : "1M";
 
   try {
-    const history = await fetchHistory(params.ticker.toUpperCase(), timeframe);
+    const history = await fetchHistory(ticker.toUpperCase(), timeframe);
     return NextResponse.json(history);
   } catch (err: any) {
     return NextResponse.json(
