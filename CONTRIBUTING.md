@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for looking. lidr is a personal-research prototype; PRs and issues are welcome but expect opinionated review against the rules below. The sibling project [`lidr-ml`](https://github.com/pavarit/lidr-ml) is where backtesting and calibrated probabilities live — if your change is about *signal quality* rather than the website, that's usually the right repo.
+Thanks for looking. lidr is a personal-research prototype; PRs and issues are welcome but expect opinionated review against the rules below. The sibling project [`lidr-models`](https://github.com/pavarit/lidr-models) is where backtesting and calibrated probabilities live — if your change is about *signal quality* rather than the website, that's usually the right repo.
 
 ## Development setup
 
@@ -21,7 +21,7 @@ npm run lint         # next lint
 npm run build        # full production build
 ```
 
-There is **no automated test suite**. `typecheck` + `lint` + `build` are the only gates. This is deliberate while lidr is a small prototype — the signal logic that needs real testing lives in `lidr-ml`, which has a proper pytest + accuracy + lookahead-safety harness.
+There is **no automated test suite**. `typecheck` + `lint` + `build` are the only gates. This is deliberate while lidr is a small prototype — the signal logic that needs real testing lives in `lidr-models`, which has a proper pytest + accuracy + lookahead-safety harness.
 
 ## Adding a signal
 
@@ -54,7 +54,7 @@ interface SignalResult {
    - Add a value under **each** of `short`, `medium`, and `long` in the `PARAMS_BY_CONTEXT` map in `lib/signals/config.ts`. (The three contexts tune lookbacks to the chart timeframe — 1M → short, 3M → medium, everything else → long.)
 4. **Sanity-check by hand**: `npm run dev`, tap a few tickers, confirm your signal shows BUY/HOLD/SELL with reasonable confidence and that the tooltip renders your `explanation`.
 
-There's no automated lookahead test in this repo (the corresponding test lives in `lidr-ml` for the ported Python version). If your signal will eventually be ported to `lidr-ml`, write the lookahead test there.
+There's no automated lookahead test in this repo (the corresponding test lives in `lidr-models` for the ported Python version). If your signal will eventually be ported to `lidr-models`, write the lookahead test there.
 
 ### Confidence convention
 

@@ -180,7 +180,7 @@ You'll get a public URL (e.g. `lidr.vercel.app`). Free tier is plenty for person
 
 The signal will appear in the right-hand panel automatically across all three contexts. See [CONTRIBUTING.md](CONTRIBUTING.md) for the full procedure, type shapes, and confidence convention.
 
-> Note: most new-signal exploration happens in the sibling [`lidr-ml`](https://github.com/pavarit/lidr-ml) project, which is where backtesting + calibrated probabilities live. Signals get prototyped and validated there before potentially being added here.
+> Note: most new-signal exploration happens in the sibling [`lidr-models`](https://github.com/pavarit/lidr-models) project, which is where backtesting + calibrated probabilities live. Signals get prototyped and validated there before potentially being added here.
 
 ---
 
