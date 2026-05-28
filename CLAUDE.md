@@ -70,7 +70,7 @@ types/
 ## Conventions (read before writing code)
 
 - **`main` is protected — all changes land via PR.** Direct pushes are blocked. Workflow: branch → commit → push → `gh pr create` → wait for green CI + Vercel preview → `gh pr merge --squash --delete-branch`. Full procedure in [CONTRIBUTING.md → Workflow](CONTRIBUTING.md#workflow). The merge to `main` is what triggers Vercel's production deploy, so anything on `main` has already passed CI and built successfully on Vercel's preview.
-- **Next.js 14 + TypeScript (strict).** Path alias `@/` resolves to the project root (set in `tsconfig.json`). ESLint runs via Next's built-in config.
+- **Next.js 15 + TypeScript (strict).** Path alias `@/` resolves to the project root (set in `tsconfig.json`). ESLint runs via Next's built-in config (ESLint 9 + flat config since #5).
 - **Type-check + lint before claiming work is done.** `npm run typecheck && npm run lint`. There is no automated test suite; these are the only gates.
 - **Signals are pure functions**: `(input: SignalInput) => SignalResult` in `lib/signals/`. Adding a new signal: create the file, then add one line to the `runAllSignals` array in `lib/signals/index.ts`. UI and route handlers need zero changes. Verify by tapping a ticker — no auto test.
 - **yahoo-finance2 v3 usage rules**: always instantiate (`const yahooFinance = new YahooFinance()`); never call `suppressNotices()` (removed in v3 — will crash all API routes). Methods used: `search()`, `quote()`, `chart()`.
@@ -83,7 +83,7 @@ See **Gotchas** below for the past failures that motivated several of these rule
 
 Strategic forks in the road — *why we chose X over Y*. For procedural rules see Conventions; for things that bit us see Gotchas.
 
-- **Pinned to Next 14, not 15/16.** Next 16 made App Router route handler `params` async, which would break the four files under `app/api/*/route.ts`. Migration is on Next Up but explicitly deferred until before public launch.
+- **Track Next.js's current major; don't lag on it.** Originally pinned to Next 14 to avoid the async-`params` migration. Bumped 14.2.35 → 15.5.18 on 2026-05-26 (Dependabot PR #2) to close 14 production-tree CVE advisories in one move; the four `app/api/*/route.ts` handlers were updated to the async `params: Promise<{...}>` shape at the same time. Next 16 migration deferred to regular upkeep cadence — see Next Up #1.
 - **Signals are pluggable by design.** Each is a pure function in `lib/signals/`; the registry + UI know nothing about specific signals. Made adding RSI / MACD / Bollinger / breakout / volume to the original SMA-only build cheap, and will make consuming `lidr-models`'s artifact cheap when that bridge lands.
 - **Signal context system.** Three contexts: `short` (1M chart view), `medium` (3M view), `long` (every other timeframe — 1D, 1W, 1Y, 5Y, ALL). Each has a `SignalParams` set in `lib/signals/config.ts`. Mapping is `contextForTimeframe()`. The frontend refetches signals when the user changes timeframe.
 - **Confidence values are heuristics, NOT probabilities.** Normalized strength scores ranging 0–1 based on how far past a threshold the signal is. The UI footer is honest about this; do not present them as calibrated probabilities. Replacing them with empirically calibrated probabilities is the entire point of `lidr-models`.
@@ -107,12 +107,12 @@ Non-obvious things that bit us. Each entry earned its place by causing a real pr
 
 In rough priority order:
 
-1. **Migrate to Next 16.** Now **CVE-driven**, not just upkeep — as of 2026-05-26, `npm audit --omit=dev` reports 15 unpatched advisories in the production tree: 14 against `next@14.2.x` (DoS via Image Optimizer, RSC cache poisoning, HTTP request smuggling in rewrites, XSS via CSP nonces, et al.) and 1 against transitive `postcss <8.5.10`. Mitigation requires `next >= 16.3.0`; there's no Next 14 backport. Mechanical work: bump `next` 14 → 16 and `react`/`react-dom` 18 → 19 (peer dep); change `params` to `Promise<{...}>` and `await` it in the four handlers under `app/api/*/route.ts`; refresh `eslint-config-next` to the matching major; click through the live demo to verify signals/chart/search still render. Realistic effort: an evening (1–3 hr). Risk for *this codebase* today is moderate-not-urgent (personal demo, no auth, robots-blocked, no PII or money — most CVEs need user-targeted features lidr doesn't use). Risk rises sharply if/when item #6 (password gate for wider sharing) is triggered — **do not flip the gate without doing this first**.
+1. **Migrate to Next 16.** Routine upkeep now. The 14 Next.js advisories that previously made this CVE-driven were closed when `next` was bumped 14.2.35 → 15.5.18 (Dependabot PR #2 on 2026-05-26); GitHub Dependabot confirms all 14 now `state: "fixed"` as of 2026-05-26T23:25:52Z. The scary part of the 15 → 16 jump — async `params` in route handlers — happened in the 14 → 15 move and is already in the codebase. Remaining mechanical work: bump `react`/`react-dom` 18 → 19 (Next 16 peer dep), bump `eslint-config-next` to match, click through the live demo. Realistic effort: an evening. **One Dependabot alert remains open**: [#7](https://github.com/pavarit/lidr/security/dependabot/7), `postcss < 8.5.10` XSS via unescaped `</style>` (CVE-2026-41305, medium, CVSS 6.1, transitive). The direct dep is already at 8.5.10 (Dependabot PR #1); the alert is a stale transitive entry in `package-lock.json` from a different parent. Clear it with `npm dedupe` or an `overrides` block — independent of the Next 16 migration. Threat model doesn't apply to lidr regardless: PostCSS runs only at build time via Tailwind; nothing in the app parses attacker-controlled CSS at runtime.
 2. **Add auth + backend** (NextAuth + Supabase free tier are the discussed options) so the watchlist can sync across devices instead of being per-browser `localStorage`.
 3. **Backtest the signals + build an ML ensemble model** — IN PROGRESS as the sibling project `lidr-models` (local: `C:\Users\smnk1\Claude\Projects\lidr-models`, GitHub: https://github.com/pavarit/lidr-models; renamed from `lidr-ml` on 2026-05-27 when it became a multi-package monorepo). Python-first research monorepo: shared `lidr_core` harness (backtest engine, eval, JSON artifact contract) plus per-model packages (`ta_ensemble` ships the six TA signals; `news_sentiment` is the next model). Walk-forward / expanding-window CV from 2005 to today. The pipeline emits a `schema_version: 2` JSON artifact (predictions + calibrated confidences + model_id); the natural integration seam back into lidr is `/api/signals/[ticker]`, which can read the artifact directly (cheap) or proxy to a Python service later (item 5). Goal is to replace the current heuristic confidences with empirically calibrated probabilities.
 4. **Add fundamental signals** (earnings momentum, P/E percentile vs own history). Requires a paid data source — not on the immediate path.
 5. **Add a Python FastAPI microservice for computation-heavy work.** Decision: keep Next.js for the full frontend and as a thin API gateway; add Python as a separate service at the signals/computation layer when needed. The natural seam is `/api/signals/[ticker]` — Next.js can proxy to the Python service for heavy calls while simple signals stay in JS. Deploy the Python service on Railway or Render free tier alongside the Vercel frontend. Trigger: once `lidr-models` (item 3) has a model worth serving live. Until then, lidr-models writes a static artifact that lidr reads — no service needed.
-6. **Add a password gate** when sharing the URL more widely. `robots.txt` is already in place to block search indexing. For access control, the recommended approach is Next.js middleware + a simple login page with the password stored as a Vercel environment variable (one-time friction, cookie-based). Deliberately deferred — no urgency at current demo scale. **Blocked by item #1**: sharing the URL beyond the personal-demo audience requires closing the open Next.js CVEs first.
+6. **Add a password gate** when sharing the URL more widely. `robots.txt` is already in place to block search indexing. For access control, the recommended approach is Next.js middleware + a simple login page with the password stored as a Vercel environment variable (one-time friction, cookie-based). Deliberately deferred — no urgency at current demo scale. Previously blocked on item #1 (Next.js CVEs); that block lifted on 2026-05-26 when Next was bumped to 15.5.18.
 
 ## Active Task
 
@@ -121,6 +121,23 @@ _Nothing currently in-flight._
 The lidr-models sibling project (Next Up #3) is scaffolded and pushed to its own GitHub repo. Ongoing ML iteration happens there, not here, until the bridge step (wiring the JSON artifact into `/api/signals/[ticker]`) is reached.
 
 ## Recent Changes
+
+### 2026-05-27 — Doc sync: reflect Dependabot fixes that landed undocumented
+
+Two Dependabot auto-PRs (`postcss` 8.4.39 → 8.5.10 in #1, `next` 14.2.35 → 15.5.18 in #2) plus the ESLint 9 + flat-config migration (#5) landed on 2026-05-26 during the brief window before protected-main was adopted later the same day, and slipped into `main` without a Recent Changes entry. CLAUDE.md was still claiming the codebase was on Next 14.2.x with 15 unpatched CVEs in the production tree; GitHub Dependabot actually shows 14 of those 15 advisories `state: "fixed"` (timestamped 2026-05-26T23:25:52Z, when the Next 15 bump landed).
+
+This entry exists to close the gap. Touched in this PR:
+
+- **Stack/Conventions** (line 73): "Next.js 14" → "Next.js 15", noted ESLint 9 + flat config.
+- **Key Decisions**: rewrote the "Pinned to Next 14, not 15/16" bullet to reflect the actual current state — on 15.5.18, async-`params` migration done, Next 16 deferred to upkeep cadence.
+- **Next Up #1 (Migrate to Next 16)**: demoted from "CVE-driven, urgent" to plain upkeep. Documented that the one remaining Dependabot alert (#7, `postcss < 8.5.10`, medium, transitive) doesn't apply to lidr's threat model (PostCSS only runs at build time via Tailwind; nothing parses attacker-controlled CSS at runtime), and is clearable with `npm dedupe` independent of the Next 16 migration.
+- **Next Up #6 (password gate)**: dropped the "Blocked by item #1" line, since the CVE exposure that motivated it is closed.
+
+The 2026-05-26 "Log Next.js CVE situation; mark migration CVE-driven" entry below stays as-is — that was historical truth at the time of writing — but is now superseded by this entry.
+
+**Workflow lesson worth remembering.** Dependabot auto-PRs are easy to miss in Recent Changes, especially when they land before protected-main is on (no required-status-checks gate, no merge ceremony, just a quick "approve & merge"). The protected-main workflow adopted later the same day means this specific drift won't recur in the same shape — every future merge is gated and visible — but worth a sanity sweep of `git log --oneline -- package.json package-lock.json` periodically to make sure no infra-class change happened without a doc note.
+
+Separately, a small companion PR (#7) updated two stale `C:\...\lidr-ml` on-disk path references in CLAUDE.md to `lidr-models` after the local folder rename; sibling `lidr-models` PR #25 covered the matching cleanup on that side.
 
 ### 2026-05-26 — Adopt protected-main PR workflow
 
