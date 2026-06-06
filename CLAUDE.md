@@ -100,6 +100,7 @@ Non-obvious things that bit us. Each entry earned its place by causing a real pr
 - **GitHub email privacy rejects pushes with the personal email.** Use the `...@users.noreply.github.com` form on every commit. The initial push to GitHub bounced for this reason.
 - **Next 14 + Windows native: `next dev` returns 404 for all routes on a clean start.** No compilation occurs in dev mode without an existing `.next/` cache; `next start` then renders dynamically with dev-mode CSS paths that don't exist in the production build. Vercel auto-deploy is the verification path when on Windows native. Less urgent now that the workflow has moved to WSL — but if you're back on PowerShell for any reason, this will resurface.
 - **PowerShell execution policy blocks npm scripts on a fresh Windows install.** First-time setup needs `Set-ExecutionPolicy RemoteSigned -Scope CurrentUser`. Not relevant in WSL.
+- **A blank price chart usually means a recharts `ResponsiveContainer` version mismatch, not a data problem.** `recharts@2.12.7`'s `ResponsiveContainer` silently renders an empty `<div>` (no SVG, no paths) under the Next 15 runtime, even when the container is correctly sized and the history API returns valid data. Fixed by bumping to `recharts@2.15.4` (2026-06-06). If the chart goes blank again after a Next major bump, check the recharts/React compatibility before touching `PriceChart.tsx` or the history route — the component and API are rarely the culprit.
 
 ## Next Up
 
@@ -121,6 +122,14 @@ _Nothing currently in-flight._
 The lidr-models sibling project (Next Up #3) is scaffolded and pushed to its own GitHub repo. Ongoing ML iteration happens there, not here, until the bridge step (wiring the JSON artifact into `/api/signals/[ticker]`) is reached.
 
 ## Recent Changes
+
+### 2026-06-06 — Fix blank price chart (recharts 2.12.7 → 2.15.4)
+
+The price chart stopped rendering on the live site — the chart card showed a blank area between "Price" and "Key Stats". Root cause: **`recharts@2.12.7`'s `ResponsiveContainer` is incompatible with the Next 15 runtime.** The history API was fine (returned valid data); the failure was purely client-side rendering. Diagnosed in the browser: both `ResponsiveContainer`s on the page rendered an empty `<div>` with no `.recharts-wrapper`, no SVG, and no area paths — even the desktop one that correctly measured 912×288px. So data was present and the container was sized, but Recharts never rendered the chart inside it. This is the documented recharts 2.12.7 `ResponsiveContainer` bug ([recharts#4763](https://github.com/recharts/recharts/issues/4763)); it was latent under Next 14 and started triggering reliably after the Next 14→15 bump (PR #2) — `recharts` itself had been pinned at 2.12.7 since the initial commit and never moved.
+
+Fix: bumped `recharts` 2.12.7 → 2.15.4 (latest 2.x; React-18 compatible). No component changes needed — `PriceChart.tsx` was textbook-correct. Verified by running a local production build (`next start`) and loading it in a real browser: the desktop chart now renders (`.recharts-wrapper` present, SVG height 288, area path drawn) and shows the green area chart with axes and timeframe selector. `typecheck` + `lint` + `build` all green. Mobile layout uses the same `PriceChart`, so the same fix applies there.
+
+Note for whoever does the Next 16 migration (Next Up #1): recharts 2.x is now EOL (npm deprecation warns to move to recharts v3, which is a rewrite requiring a migration). Not urgent — 2.15.4 is stable on React 18 — but worth folding into the Next 16 / React 19 upgrade since recharts 3 supports React 19.
 
 ### 2026-05-27 — Doc sync: reflect Dependabot fixes that landed undocumented
 
